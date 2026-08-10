@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="72" fill="#09090b"/>
+  <path d="M72 88h368v336H72z" fill="#b91c1c"/>
+  <path d="M108 124h296v264H108z" fill="#09090b"/>
+  <text x="256" y="286" text-anchor="middle" fill="#fafafa" font-family="Arial, sans-serif" font-size="112" font-weight="800">RTD</text>
+  <path d="M145 324h222" stroke="#b91c1c" stroke-width="18"/>
+</svg>
