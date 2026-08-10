@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { createSessionAuthorizer } from "./session"
-import { hashToken } from "./auth"
-import type { VercelRequest } from "./types"
+import { createSessionAuthorizer } from "../../../api/_lib/session"
+import { hashToken } from "../../../api/_lib/auth"
+import type { VercelRequest } from "../../../api/_lib/types"
 
 function request(cookie?: string): VercelRequest {
   return { method: "GET", headers: cookie ? { cookie } : {}, query: {}, body: undefined }

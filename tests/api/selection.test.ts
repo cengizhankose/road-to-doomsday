@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { createSelectionHandler } from "./selection"
-import type { VercelRequest, VercelResponse } from "./_lib/types"
+import { createSelectionHandler } from "../../api/selection"
+import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
 
 function response() {
   let statusCode = 200

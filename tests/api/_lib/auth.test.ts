@@ -6,8 +6,8 @@ import {
   hashToken,
   readSessionToken,
   sessionCookie,
-} from "./auth"
-import type { VercelRequest } from "./types"
+} from "../../../api/_lib/auth"
+import type { VercelRequest } from "../../../api/_lib/types"
 
 function request(headers: VercelRequest["headers"]): VercelRequest {
   return { method: "GET", headers, query: {}, body: undefined }

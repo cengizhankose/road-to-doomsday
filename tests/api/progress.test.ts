@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { createProgressHandler } from "./progress"
-import type { ProgressRecord } from "../src/domain/progress"
-import type { VercelRequest, VercelResponse } from "./_lib/types"
+import { createProgressHandler } from "../../api/progress"
+import type { ProgressRecord } from "../../src/domain/progress"
+import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
 
 const record: ProgressRecord = {
   catalogId: "iron-man",

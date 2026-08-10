@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { createJoinHandler } from "./join"
-import type { VercelRequest, VercelResponse } from "./_lib/types"
+import { createJoinHandler } from "../../api/join"
+import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
 
 function request(overrides: Partial<VercelRequest> = {}): VercelRequest {
   return {
