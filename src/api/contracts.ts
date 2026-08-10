@@ -1,8 +1,8 @@
 import { z } from "zod"
 
-import { catalog } from "@/data/catalog"
-import { routeSchema } from "@/domain/catalog"
-import { progressRecordSchema } from "@/domain/progress"
+import { catalog } from "../data/catalog.js"
+import { routeSchema } from "../domain/catalog.js"
+import { progressRecordSchema } from "../domain/progress.js"
 
 const catalogIds = new Set(catalog.map((item) => item.id))
 

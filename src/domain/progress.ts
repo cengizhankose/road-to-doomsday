@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import type { CatalogItem, Route } from "@/domain/catalog"
+import type { CatalogItem, Route } from "./catalog.js"
 
 export const watchStatusSchema = z.enum([
   "not_started",

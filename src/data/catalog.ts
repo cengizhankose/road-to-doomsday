@@ -3,7 +3,7 @@ import {
   type CatalogItem,
   type ReleaseStatus,
   type Route,
-} from "@/domain/catalog"
+} from "../domain/catalog.js"
 
 const movie = (
   id: string,
