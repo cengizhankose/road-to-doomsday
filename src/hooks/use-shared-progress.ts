@@ -1,27 +1,57 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import type { ProgressMap, ProgressRecord } from "@/domain/progress"
-import { progressClient } from "@/lib/progress-client"
+import type {
+  ProgressRecord,
+  SharedProgressState,
+} from "@/domain/progress"
+import {
+  progressClient,
+  type Selection,
+} from "@/lib/progress-client"
 
 const queryKey = ["shared-progress"] as const
 const localStorageKey = "rtd-dev-progress"
+const emptyState: SharedProgressState = {
+  progress: {},
+  selections: { movies: null, series: null },
+}
 
-function readLocalProgress(): ProgressMap {
+function readLocalState(): SharedProgressState {
   try {
-    return JSON.parse(localStorage.getItem(localStorageKey) ?? "{}") as ProgressMap
+    const parsed = JSON.parse(localStorage.getItem(localStorageKey) ?? "{}") as Record<string, unknown>
+    if (parsed.progress && parsed.selections) {
+      return parsed as unknown as SharedProgressState
+    }
+    return { ...emptyState, progress: parsed as SharedProgressState["progress"] }
   } catch {
-    return {}
+    return emptyState
   }
 }
 
+function writeLocalState(state: SharedProgressState) {
+  localStorage.setItem(localStorageKey, JSON.stringify(state))
+}
+
 function saveLocalProgress(record: ProgressRecord): ProgressRecord {
-  const current = readLocalProgress()
-  const saved = { ...record, revision: (current[record.catalogId]?.revision ?? 0) + 1 }
-  localStorage.setItem(
-    localStorageKey,
-    JSON.stringify({ ...current, [record.catalogId]: saved }),
-  )
+  const current = readLocalState()
+  const saved = {
+    ...record,
+    revision: (current.progress[record.catalogId]?.revision ?? 0) + 1,
+  }
+  writeLocalState({
+    ...current,
+    progress: { ...current.progress, [record.catalogId]: saved },
+  })
   return saved
+}
+
+function saveLocalSelection(selection: Selection): Selection {
+  const current = readLocalState()
+  writeLocalState({
+    ...current,
+    selections: { ...current.selections, [selection.route]: selection.catalogId },
+  })
+  return selection
 }
 
 export function useSharedProgress() {
@@ -30,29 +60,44 @@ export function useSharedProgress() {
     queryKey,
     queryFn: () =>
       import.meta.env.DEV
-        ? Promise.resolve(readLocalProgress())
+        ? Promise.resolve(readLocalState())
         : progressClient.getAll(),
   })
-  const mutation = useMutation({
+  const progressMutation = useMutation({
     mutationFn: (record: ProgressRecord) =>
       import.meta.env.DEV
         ? Promise.resolve(saveLocalProgress(record))
         : progressClient.save(record),
     onSuccess: (saved) => {
-      queryClient.setQueryData<ProgressMap>(queryKey, (current = {}) => ({
+      queryClient.setQueryData<SharedProgressState>(queryKey, (current = emptyState) => ({
         ...current,
-        [saved.catalogId]: saved,
+        progress: { ...current.progress, [saved.catalogId]: saved },
+      }))
+    },
+  })
+  const selectionMutation = useMutation({
+    mutationFn: (selection: Selection) =>
+      import.meta.env.DEV
+        ? Promise.resolve(saveLocalSelection(selection))
+        : progressClient.saveSelection(selection),
+    onSuccess: (saved) => {
+      queryClient.setQueryData<SharedProgressState>(queryKey, (current = emptyState) => ({
+        ...current,
+        selections: { ...current.selections, [saved.route]: saved.catalogId },
       }))
     },
   })
 
+  const state = query.data ?? emptyState
   return {
-    progress: query.data ?? {},
+    progress: state.progress,
+    selections: state.selections,
     loading: query.isLoading,
     refreshing: query.isFetching,
     refresh: query.refetch,
-    save: mutation.mutateAsync,
-    saving: mutation.isPending,
-    error: query.error ?? mutation.error,
+    save: progressMutation.mutateAsync,
+    selectNext: selectionMutation.mutateAsync,
+    saving: progressMutation.isPending || selectionMutation.isPending,
+    error: query.error ?? progressMutation.error ?? selectionMutation.error,
   }
 }

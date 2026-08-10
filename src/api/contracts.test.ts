@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { progressPatchSchema } from "@/api/contracts"
+import { progressPatchSchema, selectionPatchSchema } from "@/api/contracts"
 
 describe("progressPatchSchema", () => {
   const valid = {
@@ -27,9 +27,32 @@ describe("progressPatchSchema", () => {
     ).toBe(false)
   })
 
+  it("rejects unknown request fields", () => {
+    expect(
+      progressPatchSchema.safeParse({ ...valid, householdId: "attacker-chosen" })
+        .success,
+    ).toBe(false)
+  })
+
   it("rejects oversized notes", () => {
     expect(
       progressPatchSchema.safeParse({ ...valid, note: "x".repeat(2001) }).success,
+    ).toBe(false)
+  })
+})
+
+describe("selectionPatchSchema", () => {
+  it("accepts a catalog item from the chosen route", () => {
+    expect(
+      selectionPatchSchema.safeParse({ route: "movies", catalogId: "iron-man" })
+        .success,
+    ).toBe(true)
+  })
+
+  it("rejects a catalog item from another route", () => {
+    expect(
+      selectionPatchSchema.safeParse({ route: "series", catalogId: "iron-man" })
+        .success,
     ).toBe(false)
   })
 })

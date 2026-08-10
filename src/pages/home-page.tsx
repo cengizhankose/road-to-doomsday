@@ -5,17 +5,19 @@ import { Button } from "@/components/ui/button"
 import { catalog } from "@/data/catalog"
 import {
   getRouteCompletion,
-  getRouteNextItem,
+  getSelectedRouteItem,
   type ProgressMap,
+  type RouteSelections,
 } from "@/domain/progress"
 
 interface HomePageProps {
   progress: ProgressMap
+  selections: RouteSelections
   onRefresh: () => void
   refreshing: boolean
 }
 
-export function HomePage({ progress, onRefresh, refreshing }: HomePageProps) {
+export function HomePage({ progress, selections, onRefresh, refreshing }: HomePageProps) {
   const movies = getRouteCompletion(catalog, progress, "movies")
   const series = getRouteCompletion(catalog, progress, "series")
 
@@ -67,12 +69,12 @@ export function HomePage({ progress, onRefresh, refreshing }: HomePageProps) {
       <section aria-label="Watch routes" className="space-y-3.5">
         <RouteCard
           route="movies"
-          nextItem={getRouteNextItem(catalog, progress, "movies")}
+          nextItem={getSelectedRouteItem(catalog, selections, "movies")}
           {...movies}
         />
         <RouteCard
           route="series"
-          nextItem={getRouteNextItem(catalog, progress, "series")}
+          nextItem={getSelectedRouteItem(catalog, selections, "series")}
           {...series}
         />
       </section>

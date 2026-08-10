@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Check, Clock3, Play, Save, SkipForward } from "lucide-react"
+import { ArrowLeft, CalendarDays, Check, Clock3, ListStart, Play, Save, SkipForward } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 
@@ -16,6 +16,8 @@ interface DetailPageProps {
   item: CatalogItem
   progress?: ProgressRecord
   onSave: (progress: ProgressRecord) => unknown | Promise<unknown>
+  onSelectNext: (item: CatalogItem) => unknown | Promise<unknown>
+  selectedNext: boolean
   saving: boolean
 }
 
@@ -70,7 +72,14 @@ function ScorePicker({
   )
 }
 
-export function DetailPage({ item, progress, onSave, saving }: DetailPageProps) {
+export function DetailPage({
+  item,
+  progress,
+  onSave,
+  onSelectNext,
+  selectedNext,
+  saving,
+}: DetailPageProps) {
   const initial = useMemo<ProgressRecord>(
     () => ({
       catalogId: item.id,
@@ -123,6 +132,18 @@ export function DetailPage({ item, progress, onSave, saving }: DetailPageProps) 
           {item.year} · {item.releaseStatus === "upcoming" ? "Upcoming" : "Released"}
         </p>
       </header>
+
+      <Button
+        type="button"
+        variant={selectedNext ? "secondary" : "outline"}
+        aria-pressed={selectedNext}
+        disabled={saving || selectedNext}
+        onClick={() => void onSelectNext(item)}
+        className="mb-4 min-h-12 w-full border-primary/30"
+      >
+        <ListStart className="size-4" aria-hidden="true" />
+        {selectedNext ? "Selected as next" : "Set as next"}
+      </Button>
 
       <form
         className="space-y-4"

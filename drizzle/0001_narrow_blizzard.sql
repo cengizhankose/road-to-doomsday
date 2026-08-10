@@ -1,5 +1,0 @@
-ALTER TABLE "title_progress" ADD CONSTRAINT "title_progress_status_check" CHECK ("title_progress"."status" in ('not_started', 'planned', 'watching', 'watched', 'skipped'));--> statement-breakpoint
-ALTER TABLE "title_progress" ADD CONSTRAINT "title_progress_cengizhan_score_check" CHECK ("title_progress"."cengizhan_score" is null or "title_progress"."cengizhan_score" between 0 and 10);--> statement-breakpoint
-ALTER TABLE "title_progress" ADD CONSTRAINT "title_progress_sinem_score_check" CHECK ("title_progress"."sinem_score" is null or "title_progress"."sinem_score" between 0 and 10);--> statement-breakpoint
-ALTER TABLE "title_progress" ADD CONSTRAINT "title_progress_position_check" CHECK (("title_progress"."current_season" is null or "title_progress"."current_season" > 0) and ("title_progress"."current_episode" is null or "title_progress"."current_episode" > 0));--> statement-breakpoint
-ALTER TABLE "title_progress" ADD CONSTRAINT "title_progress_note_length_check" CHECK ("title_progress"."note" is null or char_length("title_progress"."note") <= 2000);

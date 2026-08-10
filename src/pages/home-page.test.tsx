@@ -8,7 +8,7 @@ describe("HomePage", () => {
   it("shows independent next-up cards for movies and series", () => {
     render(
       <MemoryRouter>
-        <HomePage progress={{}} onRefresh={vi.fn()} refreshing={false} />
+        <HomePage progress={{}} selections={{ movies: "iron-man", series: "daredevil" }} onRefresh={vi.fn()} refreshing={false} />
       </MemoryRouter>,
     )
 
@@ -21,10 +21,26 @@ describe("HomePage", () => {
     expect(screen.getByText("Daredevil")).toBeInTheDocument()
   })
 
+  it("does not invent a next item when neither route is selected", () => {
+    render(
+      <MemoryRouter>
+        <HomePage
+          progress={{}}
+          selections={{ movies: null, series: null }}
+          onRefresh={vi.fn()}
+          refreshing={false}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getAllByText("Choose from route")).toHaveLength(2)
+    expect(screen.queryByText("Iron Man")).not.toBeInTheDocument()
+  })
+
   it("links each route card to its own catalog", () => {
     render(
       <MemoryRouter>
-        <HomePage progress={{}} onRefresh={vi.fn()} refreshing={false} />
+        <HomePage progress={{}} selections={{ movies: "iron-man", series: "daredevil" }} onRefresh={vi.fn()} refreshing={false} />
       </MemoryRouter>,
     )
 
@@ -42,7 +58,7 @@ describe("HomePage", () => {
     const refresh = vi.fn()
     render(
       <MemoryRouter>
-        <HomePage progress={{}} onRefresh={refresh} refreshing={false} />
+        <HomePage progress={{}} selections={{ movies: "iron-man", series: "daredevil" }} onRefresh={refresh} refreshing={false} />
       </MemoryRouter>,
     )
 

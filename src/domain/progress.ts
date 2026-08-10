@@ -21,25 +21,34 @@ export const progressRecordSchema = z.object({
   watchedOn: z.string().nullable().optional(),
   note: z.string().max(2000).nullable().optional(),
   revision: z.number().int().nonnegative(),
-})
+}).strict()
 
 export type WatchStatus = z.infer<typeof watchStatusSchema>
 export type ProgressRecord = z.infer<typeof progressRecordSchema>
 
 export type ProgressMap = Record<string, ProgressRecord>
 
-export function getRouteNextItem(
+export interface SharedProgressState {
+  progress: ProgressMap
+  selections: RouteSelections
+}
+
+export const routeSelectionsSchema = z.object({
+  movies: z.string().nullable(),
+  series: z.string().nullable(),
+}).strict()
+
+export type RouteSelections = z.infer<typeof routeSelectionsSchema>
+
+export function getSelectedRouteItem(
   items: CatalogItem[],
-  progress: ProgressMap,
+  selections: RouteSelections,
   route: Route,
 ): CatalogItem | undefined {
-  return items
-    .filter((item) => item.route === route)
-    .sort((a, b) => a.order - b.order)
-    .find((item) => {
-      const status = progress[item.id]?.status ?? "not_started"
-      return status !== "watched" && status !== "skipped"
-    })
+  const selectedId = selections[route]
+  return selectedId
+    ? items.find((item) => item.id === selectedId && item.route === route)
+    : undefined
 }
 
 export function getRouteCompletion(

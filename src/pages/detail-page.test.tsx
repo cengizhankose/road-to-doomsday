@@ -14,7 +14,7 @@ describe("DetailPage", () => {
 
     render(
       <MemoryRouter>
-        <DetailPage item={item} progress={undefined} onSave={save} saving={false} />
+        <DetailPage item={item} progress={undefined} onSave={save} saving={false} selectedNext={false} onSelectNext={vi.fn()} />
       </MemoryRouter>,
     )
 
@@ -45,7 +45,7 @@ describe("DetailPage", () => {
     const show = catalog.find((entry) => entry.id === "loki")!
     const { rerender } = render(
       <MemoryRouter>
-        <DetailPage item={movie} progress={undefined} onSave={vi.fn()} saving={false} />
+        <DetailPage item={movie} progress={undefined} onSave={vi.fn()} saving={false} selectedNext={false} onSelectNext={vi.fn()} />
       </MemoryRouter>,
     )
 
@@ -53,11 +53,34 @@ describe("DetailPage", () => {
 
     rerender(
       <MemoryRouter>
-        <DetailPage item={show} progress={undefined} onSave={vi.fn()} saving={false} />
+        <DetailPage item={show} progress={undefined} onSave={vi.fn()} saving={false} selectedNext={false} onSelectNext={vi.fn()} />
       </MemoryRouter>,
     )
 
     expect(screen.getByLabelText(/season/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/episode/i)).toBeInTheDocument()
+  })
+
+  it("sets this title as the explicit next choice", async () => {
+    const user = userEvent.setup()
+    const selectNext = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+
+    render(
+      <MemoryRouter>
+        <DetailPage
+          item={item}
+          progress={undefined}
+          onSave={vi.fn()}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={selectNext}
+        />
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole("button", { name: /set as next/i }))
+
+    expect(selectNext).toHaveBeenCalledWith(item)
   })
 })

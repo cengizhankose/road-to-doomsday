@@ -1,51 +1,38 @@
-import { createHash, timingSafeEqual } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto"
+
 import type { VercelRequest } from "./types.js"
 
 export const SESSION_COOKIE = "__Host-rtd_session"
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
-function requiredInviteToken(): string {
-  const token = process.env.INVITE_TOKEN
-  if (!token || token.length < 22) {
-    throw new Error("INVITE_TOKEN must contain at least 128 bits of entropy")
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex")
+}
+
+export function createSessionToken(): string {
+  return randomBytes(32).toString("base64url")
+}
+
+export function readSessionToken(req: VercelRequest): string | null {
+  for (const part of (req.headers.cookie ?? "").split(";")) {
+    const separator = part.indexOf("=")
+    if (separator === -1) continue
+    const key = part.slice(0, separator).trim()
+    const value = part.slice(separator + 1).trim()
+    if (key === SESSION_COOKIE && value) return value
   }
-  return token
+  return null
 }
 
-export function sessionValue(): string {
-  return createHash("sha256")
-    .update(`road-to-doomsday:${requiredInviteToken()}`)
-    .digest("base64url")
-}
-
-function safeEqual(left: string, right: string): boolean {
-  const a = Buffer.from(left)
-  const b = Buffer.from(right)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
-
-export function inviteTokenMatches(candidate: string): boolean {
-  return safeEqual(candidate, requiredInviteToken())
-}
-
-export function isAuthorized(req: VercelRequest): boolean {
-  const cookies = Object.fromEntries(
-    (req.headers.cookie ?? "")
-      .split(";")
-      .map((part) => part.trim().split("="))
-      .filter(([key, value]) => Boolean(key && value)),
+export function hasAllowedOrigin(req: VercelRequest): boolean {
+  const allowedOrigin = process.env.APP_ORIGIN
+  return Boolean(
+    allowedOrigin &&
+      typeof req.headers.origin === "string" &&
+      req.headers.origin === allowedOrigin,
   )
-  return safeEqual(cookies[SESSION_COOKIE] ?? "", sessionValue())
 }
 
-export function hasSameOrigin(req: VercelRequest): boolean {
-  const origin = req.headers.origin
-  const host = req.headers.host
-  const forwarded = req.headers["x-forwarded-proto"]
-  const protocol = Array.isArray(forwarded) ? forwarded[0] : forwarded || "https"
-
-  return typeof origin === "string" && Boolean(host) && origin === `${protocol}://${host}`
-}
-
-export function sessionCookie(): string {
-  return `${SESSION_COOKIE}=${sessionValue()}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`
+export function sessionCookie(token: string): string {
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_MAX_AGE_SECONDS}`
 }

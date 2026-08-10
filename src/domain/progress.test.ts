@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { CatalogItem } from "@/domain/catalog"
 import {
   getRouteCompletion,
-  getRouteNextItem,
+  getSelectedRouteItem,
   normalizeScore,
   normalizeSeriesPosition,
   type ProgressMap,
@@ -41,21 +41,17 @@ const items: CatalogItem[] = [
 ]
 
 describe("progress selectors", () => {
-  it("finds the next item independently for each route", () => {
-    const progress: ProgressMap = {
-      one: { catalogId: "one", status: "watched", revision: 1 },
-    }
+  it("uses only the manually selected item for each route", () => {
+    const selections = { movies: "two", series: "show" } as const
 
-    expect(getRouteNextItem(items, progress, "movies")?.id).toBe("two")
-    expect(getRouteNextItem(items, progress, "series")?.id).toBe("show")
+    expect(getSelectedRouteItem(items, selections, "movies")?.id).toBe("two")
+    expect(getSelectedRouteItem(items, selections, "series")?.id).toBe("show")
   })
 
-  it("does not suggest skipped items again", () => {
-    const progress: ProgressMap = {
-      one: { catalogId: "one", status: "skipped", revision: 1 },
-    }
-
-    expect(getRouteNextItem(items, progress, "movies")?.id).toBe("two")
+  it("does not invent an automatic next item", () => {
+    expect(
+      getSelectedRouteItem(items, { movies: null, series: null }, "movies"),
+    ).toBeUndefined()
   })
 
   it("calculates watched completion without mixing routes", () => {

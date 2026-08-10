@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1786361331769,
-      "tag": "0000_slim_spirit",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1786361370039,
-      "tag": "0001_narrow_blizzard",
+      "when": 1786364359048,
+      "tag": "0000_lethal_nitro",
       "breakpoints": true
     }
   ]

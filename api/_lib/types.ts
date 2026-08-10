@@ -12,4 +12,5 @@ export interface VercelResponse {
   status(code: number): this
   json(body: unknown): this
   redirect(status: number, location: string): this
+  end(): this
 }

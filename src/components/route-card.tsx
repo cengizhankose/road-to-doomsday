@@ -46,14 +46,14 @@ export function RouteCard({
         <div className="rounded-md border border-white/6 bg-black/25 p-3.5">
           <div className="mb-2 flex items-center justify-between gap-3">
             <Badge variant="outline" className="border-primary/25 bg-primary/8 text-[10px] uppercase tracking-[0.15em] text-primary">
-              Next up
+              {nextItem ? "Selected next" : "Next up"}
             </Badge>
             {nextItem ? (
               <span className="text-xs text-muted-foreground">{nextItem.year}</span>
             ) : null}
           </div>
           <p className="min-h-12 font-heading text-lg font-semibold leading-tight">
-            {nextItem?.title ?? "Route complete"}
+            {nextItem?.title ?? "Choose from route"}
           </p>
           <Link
             to={`/${route}`}

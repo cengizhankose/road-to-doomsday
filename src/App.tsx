@@ -8,6 +8,7 @@ import { queryClient } from "@/lib/query-client"
 import { CatalogPage } from "@/pages/catalog-page"
 import { DetailPage } from "@/pages/detail-page"
 import { HomePage } from "@/pages/home-page"
+import { JoinPage } from "@/pages/join-page"
 
 function DetailRoute({ route }: { route: "movies" | "series" }) {
   const { id } = useParams()
@@ -24,6 +25,10 @@ function DetailRoute({ route }: { route: "movies" | "series" }) {
       item={item}
       progress={shared.progress[item.id]}
       onSave={shared.save}
+      onSelectNext={(selected) =>
+        shared.selectNext({ route: selected.route, catalogId: selected.id })
+      }
+      selectedNext={shared.selections[item.route] === item.id}
       saving={shared.saving}
     />
   )
@@ -40,6 +45,7 @@ function AppRoutes() {
           element={
             <HomePage
               progress={shared.progress}
+              selections={shared.selections}
               onRefresh={() => void shared.refresh()}
               refreshing={shared.refreshing}
             />
@@ -61,11 +67,20 @@ function AppRoutes() {
   )
 }
 
+function RouterRoutes() {
+  return (
+    <Routes>
+      <Route path="/join" element={<JoinPage />} />
+      <Route path="*" element={<AppRoutes />} />
+    </Routes>
+  )
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppRoutes />
+        <RouterRoutes />
       </BrowserRouter>
     </QueryClientProvider>
   )

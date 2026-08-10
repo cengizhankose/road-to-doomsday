@@ -4,15 +4,70 @@ import {
   date,
   integer,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
 } from "drizzle-orm/pg-core"
 
+export const households = pgTable("households", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+})
+
+export const invites = pgTable("invites", {
+  tokenHash: text("token_hash").primaryKey(),
+  householdId: text("household_id")
+    .notNull()
+    .references(() => households.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+})
+
+export const sessions = pgTable("sessions", {
+  sessionHash: text("session_hash").primaryKey(),
+  householdId: text("household_id")
+    .notNull()
+    .references(() => households.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+})
+
+export const routeSelections = pgTable(
+  "route_selections",
+  {
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    route: text("route").notNull(),
+    catalogId: text("catalog_id").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "route_selections_household_route_pk",
+      columns: [table.householdId, table.route],
+    }),
+    check("route_selections_route_check", sql`${table.route} in ('movies', 'series')`),
+  ],
+)
+
 export const titleProgress = pgTable(
   "title_progress",
   {
-    catalogId: text("catalog_id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    catalogId: text("catalog_id").notNull(),
     status: text("status").notNull(),
     cengizhanScore: smallint("cengizhan_score"),
     sinemScore: smallint("sinem_score"),
@@ -27,6 +82,10 @@ export const titleProgress = pgTable(
       .defaultNow(),
   },
   (table) => [
+    primaryKey({
+      name: "title_progress_household_catalog_pk",
+      columns: [table.householdId, table.catalogId],
+    }),
     check(
       "title_progress_status_check",
       sql`${table.status} in ('not_started', 'planned', 'watching', 'watched', 'skipped')`,
@@ -47,5 +106,6 @@ export const titleProgress = pgTable(
       "title_progress_note_length_check",
       sql`${table.note} is null or char_length(${table.note}) <= 2000`,
     ),
+    check("title_progress_revision_check", sql`${table.revision} >= 1`),
   ],
 )

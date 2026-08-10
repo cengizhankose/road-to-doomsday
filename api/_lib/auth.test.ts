@@ -1,51 +1,69 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
-  hasSameOrigin,
-  inviteTokenMatches,
-  isAuthorized,
+  createSessionToken,
+  hasAllowedOrigin,
+  hashToken,
+  readSessionToken,
   sessionCookie,
-  sessionValue,
 } from "./auth"
 import type { VercelRequest } from "./types"
-
-const token = "0123456789abcdef0123456789abcdef"
 
 function request(headers: VercelRequest["headers"]): VercelRequest {
   return { method: "GET", headers, query: {}, body: undefined }
 }
 
 describe("capability link auth", () => {
-  beforeEach(() => vi.stubEnv("INVITE_TOKEN", token))
   afterEach(() => vi.unstubAllEnvs())
 
-  it("matches only the configured invite token", () => {
-    expect(inviteTokenMatches(token)).toBe(true)
-    expect(inviteTokenMatches(`${token}x`)).toBe(false)
+  it("hashes credentials without storing the original value", () => {
+    const token = "invite-secret"
+    const hash = hashToken(token)
+
+    expect(hash).toMatch(/^[a-f0-9]{64}$/)
+    expect(hash).not.toContain(token)
+    expect(hashToken(token)).toBe(hash)
   })
 
-  it("creates and verifies a hardened host cookie", () => {
-    expect(sessionCookie()).toContain("HttpOnly; Secure; SameSite=Lax")
-    expect(
-      isAuthorized(
-        request({ cookie: `__Host-rtd_session=${sessionValue()}` }),
-      ),
-    ).toBe(true)
-    expect(isAuthorized(request({ cookie: "__Host-rtd_session=bad" }))).toBe(false)
+  it("creates an independent 256-bit session credential", () => {
+    const first = createSessionToken()
+    const second = createSessionToken()
+
+    expect(first).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    expect(second).not.toBe(first)
   })
 
-  it("accepts only the request host as write origin", () => {
+  it("sets a strict hardened host cookie for the opaque session", () => {
+    const token = createSessionToken()
+    const cookie = sessionCookie(token)
+
+    expect(cookie).toContain(`__Host-rtd_session=${token}`)
+    expect(cookie).toContain("Path=/")
+    expect(cookie).toContain("HttpOnly")
+    expect(cookie).toContain("Secure")
+    expect(cookie).toContain("SameSite=Strict")
+    expect(cookie).not.toContain("Domain=")
+  })
+
+  it("reads only the host session cookie", () => {
     expect(
-      hasSameOrigin(
-        request({
-          host: "road-to-doomsday.vercel.app",
-          origin: "https://road-to-doomsday.vercel.app",
-          "x-forwarded-proto": "https",
-        }),
+      readSessionToken(
+        request({ cookie: "other=x; __Host-rtd_session=opaque-token" }),
+      ),
+    ).toBe("opaque-token")
+    expect(readSessionToken(request({ cookie: "other=x" }))).toBeNull()
+  })
+
+  it("accepts only the fixed configured origin", () => {
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+
+    expect(
+      hasAllowedOrigin(
+        request({ origin: "https://road-to-doomsday.vercel.app" }),
       ),
     ).toBe(true)
     expect(
-      hasSameOrigin(
+      hasAllowedOrigin(
         request({
           host: "road-to-doomsday.vercel.app",
           origin: "https://evil.example",
@@ -53,5 +71,7 @@ describe("capability link auth", () => {
         }),
       ),
     ).toBe(false)
+    expect(readSessionToken(request({}))).toBeNull()
+    expect(hasAllowedOrigin(request({}))).toBe(false)
   })
 })

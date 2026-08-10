@@ -1,4 +1,7 @@
+import { z } from "zod"
+
 import { catalog } from "@/data/catalog"
+import { routeSchema } from "@/domain/catalog"
 import { progressRecordSchema } from "@/domain/progress"
 
 const catalogIds = new Set(catalog.map((item) => item.id))
@@ -14,3 +17,20 @@ export const progressPatchSchema = progressRecordSchema.superRefine(
     }
   },
 )
+
+export const selectionPatchSchema = z
+  .object({
+    route: routeSchema,
+    catalogId: z.string().min(1),
+  })
+  .strict()
+  .superRefine((selection, context) => {
+    const item = catalog.find((entry) => entry.id === selection.catalogId)
+    if (!item || item.route !== selection.route) {
+      context.addIssue({
+        code: "custom",
+        path: ["catalogId"],
+        message: "Catalog item does not belong to this route",
+      })
+    }
+  })
