@@ -2,13 +2,22 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import type { CatalogItem } from "@/domain/catalog"
-import type { ProgressMap, ProgressRecord } from "@/domain/progress"
+import {
+  clearedPlan,
+  type ProgressMap,
+  type ProgressRecord,
+} from "@/domain/progress"
 import { cn } from "@/lib/utils"
 
 interface MiniCalendarProps {
   items: CatalogItem[]
   progress: ProgressMap
   onSchedule: (record: ProgressRecord) => unknown | Promise<unknown>
+  /**
+   * Removes a plan. Omitted where the calendar is read-only; the plans still
+   * list, they simply cannot be taken off the day.
+   */
+  onClearPlan?: (record: ProgressRecord) => unknown | Promise<unknown>
   saving: boolean
   now?: Date
 }
@@ -48,6 +57,7 @@ export function MiniCalendar({
   items,
   progress,
   onSchedule,
+  onClearPlan,
   saving,
   now = new Date(),
 }: MiniCalendarProps) {
@@ -186,11 +196,33 @@ export function MiniCalendar({
             Planned for {selectedLabel}
           </h3>
           <ul className="mt-2 space-y-1.5">
-            {selectedPlans.map((record) => (
-              <li key={record.catalogId} className="text-sm font-medium">
-                {titleById.get(record.catalogId) ?? record.catalogId}
-              </li>
-            ))}
+            {selectedPlans.map((record) => {
+              const title = titleById.get(record.catalogId) ?? record.catalogId
+              return (
+                <li
+                  key={record.catalogId}
+                  className="flex min-h-11 items-center justify-between gap-2"
+                >
+                  <span className="min-w-0 truncate text-sm font-medium">
+                    {title}
+                  </span>
+                  {onClearPlan ? (
+                    <button
+                      type="button"
+                      // Removing a plan is undoable in two taps, so it asks no
+                      // question — a confirmation here would cost more than the
+                      // mistake it prevents.
+                      aria-label={`Remove plan for ${title}`}
+                      disabled={saving}
+                      onClick={() => void onClearPlan(clearedPlan(record))}
+                      className="min-h-11 shrink-0 rounded-md px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         </div>
       ) : null}

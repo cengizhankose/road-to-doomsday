@@ -19,6 +19,7 @@ interface HomePageProps {
   onRefresh: () => void
   refreshing: boolean
   onSchedule?: (record: ProgressRecord) => unknown | Promise<unknown>
+  onClearPlan?: (record: ProgressRecord) => unknown | Promise<unknown>
   scheduling?: boolean
   notification?: {
     memberName: string
@@ -37,6 +38,7 @@ export function HomePage({
   onRefresh,
   refreshing,
   onSchedule,
+  onClearPlan,
   scheduling = false,
   notification,
 }: HomePageProps) {
@@ -107,6 +109,7 @@ export function HomePage({
             items={catalog}
             progress={progress}
             onSchedule={onSchedule}
+            onClearPlan={onClearPlan}
             saving={scheduling}
           />
         </div>

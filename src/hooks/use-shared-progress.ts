@@ -87,27 +87,35 @@ function saveLocalSelection(selection: Selection): Selection {
   return selection
 }
 
+/** What an accepted write should say, and whether it is worth celebrating. */
+export interface SaveConfirmation {
+  message: string
+  confetti: boolean
+}
+
 /**
- * A record to write, plus whether landing it owes the member a confirmation.
+ * A record to write, plus what landing it owes the member.
  *
  * The confirmation belongs to the control that was pressed, not to the endpoint
  * the write is routed to. "Save progress" on a detail page is an explicit save
- * whether or not a changed plan sends it down `schedule`, and the home
- * calendar's own Schedule button stays quiet for the same reason in reverse.
+ * whether or not a changed plan sends it down `schedule`, and clearing a plan
+ * is confirmed through the same channel while asking for no celebration.
  * Carrying the intent in the mutation variables is what keeps the two
  * independent, and means a confirmation cannot fire without an accepted write.
  */
 export interface SaveIntent {
   record: ProgressRecord
-  confirm: boolean
+  confirm: SaveConfirmation | null
 }
 
 export function useSharedProgress() {
   const queryClient = useQueryClient()
-  // Counts accepted explicit saves. A count rather than a flag: the UI reacts
-  // to it changing, so two saves in a row are two distinct confirmations and a
-  // re-render is none.
-  const [saveSuccessToken, setSaveSuccessToken] = useState(0)
+  // `token` counts accepted writes the caller asked to confirm. A count rather
+  // than a flag: the UI reacts to it changing, so two saves in a row are two
+  // distinct confirmations and a re-render is none.
+  const [saveConfirmation, setSaveConfirmation] = useState<
+    SaveConfirmation & { token: number }
+  >({ token: 0, message: "Progress saved", confetti: true })
 
   const cacheRecord = (saved: ProgressRecord) => {
     queryClient.setQueryData<SharedProgressState>(
@@ -131,7 +139,9 @@ export function useSharedProgress() {
   // decides whether the member sees it land — only the caller's intent does.
   const commit = (saved: ProgressRecord, { confirm }: SaveIntent) => {
     cacheRecord(saved)
-    if (confirm) setSaveSuccessToken((count) => count + 1)
+    if (confirm) {
+      setSaveConfirmation((current) => ({ ...confirm, token: current.token + 1 }))
+    }
   }
   const query = useQuery({
     queryKey,
@@ -190,10 +200,10 @@ export function useSharedProgress() {
     // the inline notice these failures are supposed to produce.
     save: progressMutation.mutate,
     /**
-     * Advances once per accepted write the caller asked to confirm; drives the
-     * save confirmation.
+     * The `token` advances once per accepted write the caller asked to confirm,
+     * carrying the words and the celebration that control earned.
      */
-    saveSuccessToken,
+    saveConfirmation,
     schedule: scheduleMutation.mutate,
     selectNext: selectionMutation.mutate,
     saving:

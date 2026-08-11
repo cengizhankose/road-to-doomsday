@@ -106,6 +106,38 @@ describe("SaveCelebration", () => {
     expect(screen.queryByTestId("confetti")).not.toBeInTheDocument()
   })
 
+  it("announces the message it was handed", () => {
+    const view = render(<SaveCelebration token={0} message="Plan saved" />)
+
+    view.rerender(<SaveCelebration token={1} message="Plan saved" />)
+
+    expect(screen.getByRole("status")).toHaveTextContent("Plan saved")
+  })
+
+  it("withholds the burst for a confirmation that is not a celebration", () => {
+    const view = render(
+      <SaveCelebration token={0} message="Plan cleared" confetti={false} />
+    )
+
+    view.rerender(
+      <SaveCelebration token={1} message="Plan cleared" confetti={false} />
+    )
+
+    expect(screen.getByRole("status")).toHaveTextContent("Plan cleared")
+    expect(screen.queryByTestId("confetti")).not.toBeInTheDocument()
+  })
+
+  it("keeps the message that arrived with the token it is announcing", () => {
+    const view = render(<SaveCelebration token={0} message="Progress saved" />)
+    view.rerender(<SaveCelebration token={1} message="Progress saved" />)
+
+    // A later re-render carrying a fresh message must not rewrite the toast
+    // that is already on screen for an earlier write.
+    view.rerender(<SaveCelebration token={1} message="Plan cleared" />)
+
+    expect(screen.getByRole("status")).toHaveTextContent("Progress saved")
+  })
+
   it("keeps the overlay inert so it cannot block a tap or shift layout", () => {
     const view = render(<SaveCelebration token={0} />)
     view.rerender(<SaveCelebration token={1} />)

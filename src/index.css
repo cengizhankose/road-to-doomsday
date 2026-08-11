@@ -132,6 +132,42 @@
   html {
     @apply font-sans;
     }
+  /*
+   * iOS Safari lays `input[type="datetime-local"]` out from the intrinsic width
+   * of its own shadow value rather than from the width it was given, so a
+   * `w-full` field inside a padded card renders wider than the card's content
+   * box and its right border and radius spill past the padding. Dropping the
+   * native appearance removes that intrinsic floor — the picker is unaffected,
+   * because iOS opens it from the input type, not from its styling — and the
+   * pseudo-elements below stop the value re-imposing a floor of its own.
+   *
+   * `font-size` must stay at 16px or larger: below that, iOS zooms the whole
+   * page in when the field takes focus and never zooms back out.
+   */
+  input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    font-size: max(16px, 1rem);
+  }
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    overflow: hidden;
+    text-align: left;
+  }
+  input[type="datetime-local"]::-webkit-datetime-edit {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    overflow: hidden;
+  }
 }
 /* Save-confirmation burst. Transform/opacity only, so it composites on the GPU
    and never reflows the page under it. Honouring reduced motion is handled in

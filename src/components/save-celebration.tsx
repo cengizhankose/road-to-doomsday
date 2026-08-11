@@ -2,11 +2,15 @@ import { Check } from "lucide-react"
 import { useEffect, useState } from "react"
 
 /**
- * Confirmation for an explicit "Save progress" the server accepted.
+ * Confirmation for a write the member asked for and the server accepted.
  *
- * `token` is a count of successful saves rather than a boolean, so the effect
+ * `token` is a count of confirmed writes rather than a boolean, so the effect
  * keys off it *changing*. A React re-render passes the same token and is
  * ignored, which is what stops a second toast or a doubled burst.
+ *
+ * `message` and `confetti` belong to the control that was pressed. Saving and
+ * scheduling are things achieved and get the burst; clearing a plan is an
+ * undo, and gets the same plain acknowledgement without the party.
  *
  * Deliberately hand-rolled: a confetti dependency would ship far more than the
  * dozen-and-a-half absolutely-positioned spans this needs, and the animation is
@@ -50,30 +54,50 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
-export function SaveCelebration({ token }: { token: number }) {
+export function SaveCelebration({
+  token,
+  message = "Progress saved",
+  confetti = true,
+}: {
+  token: number
+  message?: string
+  confetti?: boolean
+}) {
   // Seeded with the mount value: arriving on a page that already has saves
   // behind it is not itself a save.
   const [lastToken, setLastToken] = useState(token)
   const [burst, setBurst] = useState<{ id: number; pieces: Piece[] } | null>(
     null
   )
-  const [toastId, setToastId] = useState<number | null>(null)
+  // The message is captured with the token rather than read from the current
+  // props, so a toast already on screen keeps announcing the write it was
+  // raised for even if a later render carries different text.
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(
+    null
+  )
 
   // Reacting to a changed prop during render is the supported pattern here;
   // doing it in an effect would paint one frame before the confirmation.
   if (token !== lastToken) {
     setLastToken(token)
     if (token > 0) {
-      setToastId(token)
+      setToast({ id: token, message })
       // The toast is the confirmation; the animation is decoration, and only
-      // the decoration is dropped when the reader asked for less motion.
-      setBurst(prefersReducedMotion() ? null : { id: token, pieces: makePieces() })
+      // the decoration is dropped when the reader asked for less motion — or
+      // when the write was not the kind worth celebrating.
+      setBurst(
+        confetti && !prefersReducedMotion()
+          ? { id: token, pieces: makePieces() }
+          : null
+      )
     }
   }
 
+  const toastId = toast?.id ?? null
+
   useEffect(() => {
     if (toastId === null) return
-    const timer = window.setTimeout(() => setToastId(null), TOAST_MS)
+    const timer = window.setTimeout(() => setToast(null), TOAST_MS)
     return () => window.clearTimeout(timer)
   }, [toastId])
 
@@ -110,7 +134,7 @@ export function SaveCelebration({ token }: { token: number }) {
         </div>
       ) : null}
 
-      {toastId !== null ? (
+      {toast ? (
         <div
           role="status"
           aria-live="polite"
@@ -118,7 +142,7 @@ export function SaveCelebration({ token }: { token: number }) {
         >
           <p className="flex items-center gap-2 rounded-full border border-white/10 bg-zinc-900/95 px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur">
             <Check className="size-4 text-primary" aria-hidden="true" />
-            Progress saved
+            {toast.message}
           </p>
         </div>
       ) : null}

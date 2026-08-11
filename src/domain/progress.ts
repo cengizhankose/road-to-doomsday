@@ -134,6 +134,22 @@ export function shouldNotifyPlan(
   )
 }
 
+/**
+ * The record as it looks with its plan removed.
+ *
+ * `planned` is the one status that only makes sense alongside a date, so it
+ * retires with the date. Any other status describes where the title actually
+ * is — the plan was just a note about when — and survives untouched, as does
+ * every other field, including the revision the write must land against.
+ */
+export function clearedPlan(record: ProgressRecord): ProgressRecord {
+  return {
+    ...record,
+    plannedAt: null,
+    status: record.status === "planned" ? "not_started" : record.status,
+  }
+}
+
 export function normalizeScore(score: number): number {
   return Math.min(10, Math.max(0, score))
 }

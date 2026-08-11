@@ -125,6 +125,90 @@ describe("MiniCalendar", () => {
     ).toBeInTheDocument()
   })
 
+  it("removes a plan in one press, keeping every other field on the record", async () => {
+    const user = userEvent.setup()
+    const onClearPlan = vi.fn()
+    const onSchedule = vi.fn()
+    render(
+      <MiniCalendar
+        items={items}
+        progress={progress}
+        onSchedule={onSchedule}
+        onClearPlan={onClearPlan}
+        saving={false}
+        now={now}
+      />
+    )
+
+    await user.click(
+      screen.getByRole("button", { name: /August 15, 2026, 1 planned item/i })
+    )
+    const plans = screen.getByRole("region", { name: /selected day plans/i })
+
+    // No dialog, no confirmation step — one press does it.
+    await user.click(
+      within(plans).getByRole("button", { name: /remove plan for iron man/i })
+    )
+
+    expect(onSchedule).not.toHaveBeenCalled()
+    expect(onClearPlan).toHaveBeenCalledTimes(1)
+    expect(onClearPlan).toHaveBeenCalledWith({
+      ...progress["iron-man"],
+      status: "not_started",
+      plannedAt: null,
+    })
+    // The current revision is what makes the clear atomic.
+    expect(onClearPlan.mock.calls[0][0].revision).toBe(4)
+    expect(onClearPlan.mock.calls[0][0].memberOneScore).toBe(8)
+    expect(onClearPlan.mock.calls[0][0].note).toBe("Keep this")
+  })
+
+  it("disables removal while a write is in flight", async () => {
+    const user = userEvent.setup()
+    render(
+      <MiniCalendar
+        items={items}
+        progress={progress}
+        onSchedule={vi.fn()}
+        onClearPlan={vi.fn()}
+        saving
+        now={now}
+      />
+    )
+
+    await user.click(
+      screen.getByRole("button", { name: /August 15, 2026, 1 planned item/i })
+    )
+
+    expect(
+      screen.getByRole("button", { name: /remove plan for iron man/i })
+    ).toBeDisabled()
+  })
+
+  it("still lists plans when the host wires no removal handler", async () => {
+    const user = userEvent.setup()
+    render(
+      <MiniCalendar
+        items={items}
+        progress={progress}
+        onSchedule={vi.fn()}
+        saving={false}
+        now={now}
+      />
+    )
+
+    await user.click(
+      screen.getByRole("button", { name: /August 15, 2026, 1 planned item/i })
+    )
+
+    expect(
+      within(
+        screen.getByRole("region", { name: /selected day plans/i })
+      ).getByText("Iron Man")
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /remove plan/i })).toBeNull()
+  })
+
   it("schedules once with the local date-time while preserving an existing record", async () => {
     const user = userEvent.setup()
     const onSchedule = vi.fn()

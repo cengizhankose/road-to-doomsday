@@ -23,6 +23,15 @@ import { JoinPage } from "@/pages/join-page"
 
 type SharedProgress = ReturnType<typeof useSharedProgress>
 
+/*
+ * What each control says once its write lands. Saving and scheduling are
+ * things achieved, so they get the burst; clearing a plan is an undo, and a
+ * celebration for taking something away would read as a taunt.
+ */
+const SAVED = { message: "Progress saved", confetti: true }
+const PLAN_SAVED = { message: "Plan saved", confetti: true }
+const PLAN_CLEARED = { message: "Plan cleared", confetti: false }
+
 // The whole app reads one `useSharedProgress` instance. A second instance would
 // have its own mutation state, so a save that failed on the detail page would
 // never reach the notice rendered above the routes.
@@ -51,7 +60,9 @@ function DetailRoute({
         // A new or changed plan is routed through the endpoint that wakes the
         // other member. That is a delivery detail: the member pressed "Save
         // progress" either way, so either way the save is confirmed on screen.
-        const intent = { record: next, confirm: true }
+        // Clearing a date fails `shouldNotifyPlan`, so a removal lands on the
+        // quiet endpoint without anything here having to special-case it.
+        const intent = { record: next, confirm: SAVED }
         return shouldNotifyPlan(shared.progress[item.id], next)
           ? shared.schedule(intent)
           : shared.save(intent)
@@ -76,7 +87,11 @@ function AppRoutes() {
   return (
     <PrivateAccessGate loading={shared.loading} error={shared.error}>
       <AppShell>
-        <SaveCelebration token={shared.saveSuccessToken} />
+        <SaveCelebration
+          token={shared.saveConfirmation.token}
+          message={shared.saveConfirmation.message}
+          confetti={shared.saveConfirmation.confetti}
+        />
         <ActionErrorNotice
           error={shared.actionError}
           onRetry={() => {
@@ -95,11 +110,11 @@ function AppRoutes() {
                 onRefresh={() => void shared.refresh()}
                 refreshing={shared.refreshing}
                 // Same gate the detail page uses: only a new or changed plan
-                // is worth waking the other member for. The calendar shows the
-                // new plan in place as its own feedback, so it asks for no
-                // confirmation and stays silent.
+                // is worth waking the other member for. The plan appearing on
+                // the day is easy to miss on a phone, so scheduling confirms
+                // itself as loudly as any other write the member asked for.
                 onSchedule={(record) => {
-                  const intent = { record, confirm: false }
+                  const intent = { record, confirm: PLAN_SAVED }
                   return shouldNotifyPlan(
                     shared.progress[record.catalogId],
                     record
@@ -107,6 +122,11 @@ function AppRoutes() {
                     ? shared.schedule(intent)
                     : shared.save(intent)
                 }}
+                // A removal never notifies, so it goes straight down the quiet
+                // endpoint rather than relying on `shouldNotifyPlan` to say so.
+                onClearPlan={(record) =>
+                  shared.save({ record, confirm: PLAN_CLEARED })
+                }
                 scheduling={shared.saving}
                 notification={{
                   memberName: shared.member.name,

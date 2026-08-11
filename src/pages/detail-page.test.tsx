@@ -76,6 +76,194 @@ describe("DetailPage", () => {
     )
   })
 
+  it("offers a clear control only once there is a plan to clear", () => {
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const props = {
+      members: householdMembers,
+      item,
+      onSave: vi.fn(),
+      saving: false,
+      selectedNext: false,
+      onSelectNext: vi.fn(),
+    }
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DetailPage {...props} progress={undefined} />
+      </MemoryRouter>
+    )
+
+    expect(screen.queryByRole("button", { name: /clear plan/i })).toBeNull()
+
+    rerender(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{
+            catalogId: item.id,
+            status: "planned",
+            plannedAt: "2026-08-14T18:00:00.000Z",
+            revision: 3,
+          }}
+        />
+      </MemoryRouter>
+    )
+
+    expect(
+      screen.getByRole("button", { name: /clear plan/i })
+    ).toBeInTheDocument()
+  })
+
+  it("clears the planned date and drops the planned status on the next save", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+
+    render(
+      <MemoryRouter>
+        <DetailPage
+          members={householdMembers}
+          item={item}
+          progress={{
+            catalogId: item.id,
+            status: "planned",
+            memberOneScore: 8,
+            memberTwoScore: 7,
+            plannedAt: "2026-08-14T18:00:00.000Z",
+            note: "Bring snacks",
+            revision: 3,
+          }}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole("button", { name: /clear plan/i }))
+
+    // Clearing edits the draft; the member still owns the moment it persists.
+    expect(screen.getByLabelText(/planned date & time/i)).toHaveValue("")
+    expect(save).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "Not started" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    )
+    expect(screen.getByRole("button", { name: "Planned" })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    )
+
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(save).toHaveBeenCalledWith({
+      catalogId: "iron-man",
+      status: "not_started",
+      plannedAt: null,
+      memberOneScore: 8,
+      memberTwoScore: 7,
+      currentSeason: null,
+      currentEpisode: null,
+      watchedOn: null,
+      note: "Bring snacks",
+      revision: 3,
+    })
+  })
+
+  it("keeps a non-planned status when the date is cleared", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+
+    render(
+      <MemoryRouter>
+        <DetailPage
+          members={householdMembers}
+          item={item}
+          progress={{
+            catalogId: item.id,
+            status: "watching",
+            plannedAt: "2026-08-14T18:00:00.000Z",
+            revision: 3,
+          }}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole("button", { name: /clear plan/i }))
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "watching", plannedAt: null })
+    )
+  })
+
+  it("does not let the other device's plan reappear after this member cleared it", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const props = {
+      members: householdMembers,
+      item,
+      onSave: save,
+      saving: false,
+      selectedNext: false,
+      onSelectNext: vi.fn(),
+    }
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{
+            catalogId: item.id,
+            status: "planned",
+            plannedAt: "2026-08-14T18:00:00.000Z",
+            revision: 3,
+          }}
+        />
+      </MemoryRouter>
+    )
+
+    await user.click(screen.getByRole("button", { name: /clear plan/i }))
+
+    // The other member writes a note; the cleared date is this member's edit
+    // and must not be resurrected by the merge.
+    rerender(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{
+            catalogId: item.id,
+            status: "planned",
+            plannedAt: "2026-08-14T18:00:00.000Z",
+            note: "Sam: bring snacks",
+            revision: 4,
+          }}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByLabelText(/planned date & time/i)).toHaveValue("")
+
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plannedAt: null,
+        status: "not_started",
+        note: "Sam: bring snacks",
+        revision: 4,
+      })
+    )
+  })
+
   it("keeps edits local until one explicit save", async () => {
     const user = userEvent.setup()
     const save = vi.fn()

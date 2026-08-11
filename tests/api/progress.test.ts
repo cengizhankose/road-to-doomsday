@@ -199,6 +199,44 @@ describe("/api/progress household scope", () => {
     )
   })
 
+  it("persists a cleared plan as null and wakes nobody for it", async () => {
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
+    const cleared: ProgressRecord = {
+      ...record,
+      status: "not_started",
+      plannedAt: null,
+      watchedOn: null,
+      revision: 4,
+    }
+    const notify = vi.fn().mockResolvedValue(undefined)
+    const save = vi
+      .fn()
+      .mockResolvedValue({ saved: { ...cleared, revision: 5 }, current: null })
+    const handler = createProgressHandler({
+      authorize: vi.fn().mockResolvedValue(session),
+      list: vi.fn(),
+      getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
+      save,
+      notify,
+    })
+    // Even a client that asks for a notification must not get one for a
+    // removal: there is no plan left to announce.
+    const req = request("PATCH", cleared)
+    req.headers["x-rtd-notify-plan"] = "1"
+    const result = response()
+
+    await handler(req, result.res)
+
+    expect(result.status()).toBe(200)
+    expect(save).toHaveBeenCalledWith(
+      "household-rtd",
+      expect.objectContaining({ plannedAt: null, revision: 4 })
+    )
+    expect(notify).not.toHaveBeenCalled()
+    expect(result.body()).toMatchObject({ plannedAt: null, revision: 5 })
+  })
+
   it.each([
     ["a floating plannedAt without a timezone", { plannedAt: "2026-08-14T18:00:00" }],
     ["a non-datetime plannedAt", { plannedAt: "tomorrow" }],

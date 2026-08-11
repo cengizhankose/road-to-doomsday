@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   CalendarDays,
+  CalendarOff,
   Check,
   Clock3,
   ListStart,
@@ -25,7 +26,7 @@ import type {
   ProgressRecord,
   WatchStatus,
 } from "@/domain/progress"
-import { memberLabel } from "@/domain/progress"
+import { clearedPlan, memberLabel } from "@/domain/progress"
 import { cn } from "@/lib/utils"
 
 interface DetailPageProps {
@@ -187,6 +188,23 @@ export function DetailPage({
       current.has(key) ? current : new Set(current).add(key)
     )
     setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  /*
+   * Removing a plan is an edit like any other: it changes the draft and waits
+   * for "Save progress". Both fields it touches are marked as edited, so the
+   * merge above cannot hand the date back the next time the other device
+   * writes — an un-plan that silently un-does itself would be worse than no
+   * clear control at all.
+   */
+  const clearPlan = () => {
+    const cleared = clearedPlan(draft)
+    setEdited((current) => {
+      const next = new Set(current).add("plannedAt")
+      if (cleared.status !== draft.status) next.add("status")
+      return next
+    })
+    setDraft(cleared)
   }
 
   const seasonCount = item.seasonEpisodeCounts?.length ?? 0
@@ -352,7 +370,13 @@ export function DetailPage({
 
         <Card className="border-white/8 bg-card/70">
           <CardContent className="space-y-4">
-            <div>
+            {/*
+              iOS Safari sizes a datetime field from its own shadow content and
+              lets that beat `width: 100%`, so both the wrapper and the field
+              have to refuse an intrinsic floor or the input runs out past the
+              card padding. The rest of the containment is in `index.css`.
+            */}
+            <div className="min-w-0 max-w-full">
               <Label htmlFor="planned-at">Planned date & time</Label>
               <Input
                 id="planned-at"
@@ -361,8 +385,20 @@ export function DetailPage({
                 onChange={(event) =>
                   update("plannedAt", toUtcInstant(event.target.value))
                 }
-                className="mt-2 min-h-11"
+                className="mt-2 w-full max-w-full min-w-0 min-h-11"
               />
+              {draft.plannedAt ? (
+                <Button
+                  type="button"
+                  data-slot="clear-plan"
+                  variant="ghost"
+                  onClick={clearPlan}
+                  className="mt-2 min-h-11 w-full justify-center border border-white/8 text-muted-foreground hover:text-foreground"
+                >
+                  <CalendarOff className="size-4" aria-hidden="true" />
+                  Clear plan
+                </Button>
+              ) : null}
             </div>
             <div>
               <Label htmlFor="note">Shared note</Label>

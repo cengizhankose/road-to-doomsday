@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { CatalogItem } from "@/domain/catalog"
 import {
+  clearedPlan,
   getRouteCompletion,
   getSelectedRouteItem,
   householdMemberSchema,
@@ -13,6 +14,7 @@ import {
   shouldNotifyPlan,
   type HouseholdMember,
   type ProgressMap,
+  type ProgressRecord,
 } from "@/domain/progress"
 
 const items: CatalogItem[] = [
@@ -157,5 +159,58 @@ describe("household members", () => {
     expect(
       householdMemberSchema.safeParse({ id: "m", name: "", slot: 1 }).success
     ).toBe(false)
+  })
+})
+
+describe("clearing a plan", () => {
+  const planned: ProgressRecord = {
+    catalogId: "iron-man",
+    status: "planned",
+    memberOneScore: 8,
+    memberTwoScore: 7,
+    currentSeason: 2,
+    currentEpisode: 5,
+    plannedAt: "2026-08-14T18:00:00.000Z",
+    watchedOn: "2026-08-01",
+    note: "Bring snacks",
+    revision: 4,
+  }
+
+  it("drops the date and retires the plan-shaped status", () => {
+    expect(clearedPlan(planned)).toEqual({ ...planned, status: "not_started", plannedAt: null })
+  })
+
+  it.each(["watching", "watched", "skipped", "not_started"] as const)(
+    "preserves a %s status, because only 'planned' describes the date",
+    (status) => {
+      expect(clearedPlan({ ...planned, status })).toEqual({
+        ...planned,
+        status,
+        plannedAt: null,
+      })
+    }
+  )
+
+  it("keeps scores, note, revision and catalog id untouched", () => {
+    const cleared = clearedPlan(planned)
+
+    expect(cleared.catalogId).toBe("iron-man")
+    expect(cleared.revision).toBe(4)
+    expect(cleared.memberOneScore).toBe(8)
+    expect(cleared.memberTwoScore).toBe(7)
+    expect(cleared.currentSeason).toBe(2)
+    expect(cleared.currentEpisode).toBe(5)
+    expect(cleared.watchedOn).toBe("2026-08-01")
+    expect(cleared.note).toBe("Bring snacks")
+  })
+
+  it("is not the kind of write that wakes the other member", () => {
+    expect(shouldNotifyPlan(planned, clearedPlan(planned))).toBe(false)
+  })
+
+  it("leaves the record it was given alone", () => {
+    const original = { ...planned }
+    clearedPlan(planned)
+    expect(planned).toEqual(original)
   })
 })
