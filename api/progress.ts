@@ -2,7 +2,7 @@ import { neon } from "@neondatabase/serverless"
 import { and, eq } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/neon-http"
 
-import { hasAllowedOrigin } from "./_lib/auth.js"
+import { hasAllowedOrigin, pushBindingId } from "./_lib/auth.js"
 import { notifyPlan } from "./_lib/push.js"
 import { authorizeSession, type SessionContext } from "./_lib/session.js"
 import type { VercelRequest, VercelResponse } from "./_lib/types.js"
@@ -232,7 +232,10 @@ export function createProgressHandler(
         selections,
         images,
         member: { id: context.memberId, name: context.memberName },
-        push: { publicKey: process.env.VAPID_PUBLIC_KEY || null },
+        push: {
+          publicKey: process.env.VAPID_PUBLIC_KEY || null,
+          bindingId: pushBindingId(context.sessionHash),
+        },
       })
     }
 

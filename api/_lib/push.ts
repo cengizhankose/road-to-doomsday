@@ -27,29 +27,53 @@ interface PlanNotifierDependencies {
   remove(endpointHash: string): Promise<void>
 }
 
+/** A Neon tagged-template query runner, injectable so queries stay testable. */
+export type SqlExecutor = (
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+) => Promise<Record<string, unknown>[]>
+
 function databaseUrl() {
   const value = process.env.DATABASE_URL
   if (!value) throw new Error("DATABASE_URL is not configured")
   return value
 }
 
-async function listRecipients(
-  householdId: string,
-  excludedMemberId: string
-): Promise<PushRecipient[]> {
-  const sql = neon(databaseUrl())
-  const rows = await sql`
-    select endpoint_hash, endpoint, p256dh, auth
-    from push_subscriptions
-    where household_id = ${householdId}
-      and member_id <> ${excludedMemberId}
-  `
-  return rows.map((row) => ({
-    endpointHash: String(row.endpoint_hash),
-    endpoint: String(row.endpoint),
-    p256dh: String(row.p256dh),
-    auth: String(row.auth),
-  }))
+/**
+ * A push subscription is only ever a delivery address for one live session.
+ *
+ * Joining the session it was registered under means a revoked session (row
+ * deleted, cascading the subscription away) and an expired one (row still
+ * present, `expires_at` in the past) both stop being notified, without any
+ * cleanup job standing between de-authorisation and effect.
+ */
+export function createRecipientLister(sql: SqlExecutor) {
+  return async function listRecipients(
+    householdId: string,
+    excludedMemberId: string
+  ): Promise<PushRecipient[]> {
+    const rows = await sql`
+      select
+        push_subscriptions.endpoint_hash,
+        push_subscriptions.endpoint,
+        push_subscriptions.p256dh,
+        push_subscriptions.auth
+      from push_subscriptions
+      join sessions
+        on sessions.session_hash = push_subscriptions.session_hash
+        and sessions.household_id = push_subscriptions.household_id
+        and sessions.member_id = push_subscriptions.member_id
+      where push_subscriptions.household_id = ${householdId}
+        and push_subscriptions.member_id <> ${excludedMemberId}
+        and sessions.expires_at > now()
+    `
+    return rows.map((row) => ({
+      endpointHash: String(row.endpoint_hash),
+      endpoint: String(row.endpoint),
+      p256dh: String(row.p256dh),
+      auth: String(row.auth),
+    }))
+  }
 }
 
 async function deliver(recipient: PushRecipient, payload: string) {
@@ -75,7 +99,11 @@ async function remove(endpointHash: string): Promise<void> {
 }
 
 const defaultDependencies: PlanNotifierDependencies = {
-  listRecipients,
+  listRecipients: (householdId, excludedMemberId) =>
+    createRecipientLister(neon(databaseUrl()) as SqlExecutor)(
+      householdId,
+      excludedMemberId
+    ),
   deliver,
   remove,
 }

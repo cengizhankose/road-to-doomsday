@@ -104,6 +104,12 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   memberId: text("member_id")
     .notNull()
     .references(() => members.id, { onDelete: "cascade" }),
+  // The subscription lives and dies with the session that registered it, so a
+  // revoked or expired magic-link session cannot keep receiving notifications.
+  // Not unique: a member may hold several sessions, each with its own device.
+  sessionHash: text("session_hash")
+    .notNull()
+    .references(() => sessions.sessionHash, { onDelete: "cascade" }),
   endpoint: text("endpoint").notNull(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),

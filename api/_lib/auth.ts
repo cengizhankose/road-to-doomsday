@@ -13,6 +13,22 @@ export function createSessionToken(): string {
   return randomBytes(32).toString("base64url")
 }
 
+/**
+ * A non-secret, one-way marker of "which session am I on".
+ *
+ * A device needs to know when its stored push subscription is still bound to a
+ * session that has since been replaced, so it can re-register. It cannot read
+ * the HttpOnly cookie, so the server hands it this derivative instead: stable
+ * for the life of a session, different after a re-join, and useless as a
+ * credential — it is a second hash of an already-hashed 256-bit token.
+ */
+export function pushBindingId(sessionHash: string): string {
+  return createHash("sha256")
+    .update(`rtd-push-binding:${sessionHash}`)
+    .digest("hex")
+    .slice(0, 32)
+}
+
 export function readSessionToken(req: VercelRequest): string | null {
   for (const part of (req.headers.cookie ?? "").split(";")) {
     const separator = part.indexOf("=")

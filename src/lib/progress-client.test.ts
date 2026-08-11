@@ -25,7 +25,7 @@ describe("progress client", () => {
           selections: { movies: null, series: null },
           images: [image],
           member: { id: "member-cengizhan", name: "Cengizhan" },
-          push: { publicKey: "vapid-public-key" },
+          push: { publicKey: "vapid-public-key", bindingId: "binding-abc" },
         }),
         {
           status: 200,
@@ -40,6 +40,7 @@ describe("progress client", () => {
     expect(state.images["iron-man"]).toEqual(image)
     expect(state.member).toEqual({ id: "member-cengizhan", name: "Cengizhan" })
     expect(state.pushPublicKey).toBe("vapid-public-key")
+    expect(state.pushBindingId).toBe("binding-abc")
 
     expect(fetcher).toHaveBeenCalledTimes(1)
     expect(fetcher).toHaveBeenCalledWith(

@@ -10,6 +10,7 @@ import {
   type ProgressRecord,
 } from "../../src/domain/progress"
 import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
+import { pushBindingId } from "../../api/_lib/auth"
 
 const record: ProgressRecord = {
   catalogId: "iron-man",
@@ -115,8 +116,16 @@ describe("/api/progress household scope", () => {
         }),
       ],
       member: { id: "member-cengizhan", name: "Cengizhan" },
-      push: { publicKey: "vapid-public-key" },
+      push: {
+        publicKey: "vapid-public-key",
+        // Lets a device notice its push row is bound to a previous session and
+        // re-register, without spending an extra request to find out.
+        bindingId: pushBindingId(session.sessionHash),
+      },
     })
+    expect(
+      JSON.stringify(result.body())
+    ).not.toContain(session.sessionHash)
   })
 
   it("saves atomically inside the session household", async () => {

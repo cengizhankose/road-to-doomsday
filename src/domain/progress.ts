@@ -39,6 +39,8 @@ export interface SharedProgressState {
   images: CatalogImagesMap
   member: { id: string; name: string }
   pushPublicKey: string | null
+  /** Identifies the session this state was loaded under. */
+  pushBindingId: string
 }
 
 export const routeSelectionsSchema = z

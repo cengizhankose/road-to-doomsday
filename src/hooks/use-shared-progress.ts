@@ -15,6 +15,7 @@ const emptyState: SharedProgressState = {
   images: {},
   member: { id: "local-cengizhan", name: "Cengizhan" },
   pushPublicKey: null,
+  pushBindingId: "local",
 }
 
 function readLocalState(): SharedProgressState {
@@ -29,6 +30,7 @@ function readLocalState(): SharedProgressState {
         member: (parsed.member ??
           emptyState.member) as SharedProgressState["member"],
         pushPublicKey: (parsed.pushPublicKey ?? null) as string | null,
+        pushBindingId: (parsed.pushBindingId ?? "local") as string,
       }
     }
     return {
@@ -135,6 +137,7 @@ export function useSharedProgress() {
     images: state.images,
     member: state.member,
     pushPublicKey: state.pushPublicKey,
+    pushBindingId: state.pushBindingId,
     loading: query.isLoading,
     refreshing: query.isFetching,
     refresh: query.refetch,

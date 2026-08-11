@@ -34,7 +34,7 @@ const sharedProgressPayload = {
   selections: { movies: null, series: null },
   images: [],
   member: { id: "member-cengizhan", name: "Cengizhan" },
-  push: { publicKey: null },
+  push: { publicKey: null, bindingId: "binding-abc" },
 }
 
 describe("App mutation failures", () => {

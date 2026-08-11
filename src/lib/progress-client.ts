@@ -17,7 +17,12 @@ const progressResponseSchema = z
     member: z
       .object({ id: z.string().min(1), name: z.string().min(1) })
       .strict(),
-    push: z.object({ publicKey: z.string().min(1).nullable() }).strict(),
+    push: z
+      .object({
+        publicKey: z.string().min(1).nullable(),
+        bindingId: z.string().min(1),
+      })
+      .strict(),
   })
   .strict()
 
@@ -101,6 +106,7 @@ export function createProgressClient(fetcher: Fetcher = globalFetcher) {
         ),
         member: payload.member,
         pushPublicKey: payload.push.publicKey,
+        pushBindingId: payload.push.bindingId,
       }
     },
 

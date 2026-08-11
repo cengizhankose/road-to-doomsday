@@ -130,4 +130,29 @@ describe("private household database schema", () => {
       config.foreignKeys.some((key) => key.reference().foreignTable === members)
     ).toBe(true)
   })
+
+  it("binds each push subscription to the session that registered it", () => {
+    const config = getTableConfig(pushSubscriptions)
+
+    expect(columnNames(pushSubscriptions)).toContain("session_hash")
+
+    const sessionColumn = config.columns.find(
+      (column) => column.name === "session_hash"
+    )
+    expect(sessionColumn?.notNull).toBe(true)
+    // The subscription is not a device identity of its own: it belongs to one
+    // session, and it must not be a primary key, so a member keeps separate
+    // subscriptions for separate devices and sessions.
+    expect(sessionColumn?.primary).toBe(false)
+
+    const sessionKey = config.foreignKeys.find(
+      (key) => key.reference().foreignTable === sessions
+    )
+    expect(sessionKey).toBeDefined()
+    expect(
+      sessionKey?.reference().columns.map((column) => column.name)
+    ).toEqual(["session_hash"])
+    // Revoking a session must take its push subscriptions with it.
+    expect(sessionKey?.onDelete).toBe("cascade")
+  })
 })

@@ -26,3 +26,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Temporary operational scripts that talk to the production database.
+.tmp-ops/

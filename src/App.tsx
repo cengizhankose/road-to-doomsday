@@ -61,7 +61,11 @@ function DetailRoute({
 
 function AppRoutes() {
   const shared = useSharedProgress()
-  const notifications = usePushNotifications(shared.pushPublicKey, shared.member.id)
+  const notifications = usePushNotifications(
+    shared.pushPublicKey,
+    shared.member.id,
+    shared.pushBindingId,
+  )
 
   return (
     <PrivateAccessGate loading={shared.loading} error={shared.error}>

@@ -15,6 +15,13 @@
       "when": 1786373420292,
       "tag": "0001_strong_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786431668246,
+      "tag": "0002_push_session_binding",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import {
   createSessionToken,
   hasAllowedOrigin,
   hashToken,
+  pushBindingId,
   readSessionToken,
   sessionCookie,
 } from "../../../api/_lib/auth"
@@ -52,6 +53,22 @@ describe("capability link auth", () => {
       ),
     ).toBe("opaque-token")
     expect(readSessionToken(request({ cookie: "other=x" }))).toBeNull()
+  })
+
+  it("derives a push binding id that changes with the session but reveals nothing", () => {
+    const sessionHash = hashToken(createSessionToken())
+    const other = hashToken(createSessionToken())
+
+    const id = pushBindingId(sessionHash)
+
+    // Stable for a session, so the client can tell "still the same session".
+    expect(pushBindingId(sessionHash)).toBe(id)
+    // Different after a re-join, which is the signal to re-register.
+    expect(pushBindingId(other)).not.toBe(id)
+    // It is a one-way derivative, never the credential or its stored hash.
+    expect(id).toMatch(/^[a-f0-9]{32}$/)
+    expect(sessionHash).not.toContain(id)
+    expect(id).not.toBe(sessionHash.slice(0, 32))
   })
 
   it("accepts only the fixed configured origin", () => {

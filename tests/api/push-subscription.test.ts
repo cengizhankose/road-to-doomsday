@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { createPushSubscriptionHandler } from "../../api/push-subscription"
+import {
+  createPushSubscriptionHandler,
+  createSubscriptionSaver,
+} from "../../api/push-subscription"
 
 const session = {
   householdId: "household-rtd",
@@ -159,6 +162,69 @@ describe("/api/push-subscription", () => {
 
     expect(result.status()).toBe(400)
     expect(save).not.toHaveBeenCalled()
+  })
+
+  it("records the session that registered the subscription", async () => {
+    const calls: Array<{ sql: string; params: unknown[] }> = []
+    const sql = async (
+      strings: TemplateStringsArray,
+      ...params: unknown[]
+    ): Promise<Record<string, unknown>[]> => {
+      calls.push({
+        sql: strings.join("?").replace(/\s+/g, " ").trim().toLowerCase(),
+        params,
+      })
+      return []
+    }
+
+    await createSubscriptionSaver(sql)(session, {
+      endpoint: "https://web.push.apple.com/subscription/1",
+      expirationTime: null,
+      keys: { p256dh: "public-key", auth: "auth-secret" },
+    })
+
+    const insert = calls[0]
+    expect(insert.sql).toContain("session_hash")
+    // Assert position, not mere presence: a column/value misalignment that put
+    // the session hash in `endpoint` would satisfy a `toContain`.
+    expect(insert.params).toEqual([
+      expect.any(String), // endpoint_hash
+      "household-rtd",
+      "member-cengizhan",
+      "session-hash",
+      "https://web.push.apple.com/subscription/1",
+      "public-key",
+      "auth-secret",
+    ])
+    // The session binding must be refreshed when a device re-registers, or a
+    // re-subscribe would leave the row pointing at a dead session.
+    expect(insert.sql).toMatch(/session_hash\s*=\s*excluded\.session_hash/)
+  })
+
+  it("cannot capture a subscription belonging to another household", async () => {
+    const calls: Array<{ sql: string; params: unknown[] }> = []
+    const sql = async (
+      strings: TemplateStringsArray,
+      ...params: unknown[]
+    ): Promise<Record<string, unknown>[]> => {
+      calls.push({
+        sql: strings.join("?").replace(/\s+/g, " ").trim().toLowerCase(),
+        params,
+      })
+      return []
+    }
+
+    await createSubscriptionSaver(sql)(session, {
+      endpoint: "https://web.push.apple.com/subscription/1",
+      expirationTime: null,
+      keys: { p256dh: "public-key", auth: "auth-secret" },
+    })
+
+    // Knowing another household's endpoint URL must not be enough to move its
+    // row into yours — that would redirect their device to your plans.
+    expect(calls[0].sql).toMatch(
+      /where push_subscriptions\.household_id\s*=\s*excluded\.household_id/
+    )
   })
 
   it("rejects a non-string endpoint without throwing", async () => {

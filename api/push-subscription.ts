@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless"
 import { z } from "zod"
 
 import { hasAllowedOrigin } from "./_lib/auth.js"
+import type { SqlExecutor } from "./_lib/push.js"
 import { authorizeSession, type SessionContext } from "./_lib/session.js"
 import type { VercelRequest, VercelResponse } from "./_lib/types.js"
 
@@ -64,40 +65,73 @@ interface PushSubscriptionDependencies {
   save(context: SessionContext, input: PushSubscriptionInput): Promise<void>
 }
 
+/**
+ * Stores the subscription against the session that is registering it. On a
+ * re-subscribe the binding is refreshed too, so a device that reconnects under
+ * a new session does not stay attached to the old, dead one.
+ */
+export function createSubscriptionSaver(sql: SqlExecutor) {
+  return async function saveSubscription(
+    context: SessionContext,
+    input: PushSubscriptionInput
+  ): Promise<void> {
+    const endpointHash = createHash("sha256")
+      .update(input.endpoint)
+      .digest("hex")
+    await sql`
+      insert into push_subscriptions (
+        endpoint_hash,
+        household_id,
+        member_id,
+        session_hash,
+        endpoint,
+        p256dh,
+        auth,
+        updated_at
+      ) values (
+        ${endpointHash},
+        ${context.householdId},
+        ${context.memberId},
+        ${context.sessionHash},
+        ${input.endpoint},
+        ${input.keys.p256dh},
+        ${input.keys.auth},
+        now()
+      )
+      on conflict (endpoint_hash) do update set
+        household_id = excluded.household_id,
+        member_id = excluded.member_id,
+        session_hash = excluded.session_hash,
+        endpoint = excluded.endpoint,
+        p256dh = excluded.p256dh,
+        auth = excluded.auth,
+        updated_at = now()
+      where push_subscriptions.household_id = excluded.household_id
+    `
+
+    // A device whose session has since gone is undeliverable and will never be
+    // pruned by a provider 404, so it would otherwise keep its endpoint and
+    // keys on file forever.
+    await sql`
+      delete from push_subscriptions
+      where household_id = ${context.householdId}
+        and session_hash not in (
+          select session_hash from sessions where expires_at > now()
+        )
+    `
+  }
+}
+
 async function saveSubscription(
   context: SessionContext,
   input: PushSubscriptionInput
 ): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) throw new Error("DATABASE_URL is not configured")
-  const endpointHash = createHash("sha256").update(input.endpoint).digest("hex")
-  const sql = neon(databaseUrl)
-  await sql`
-    insert into push_subscriptions (
-      endpoint_hash,
-      household_id,
-      member_id,
-      endpoint,
-      p256dh,
-      auth,
-      updated_at
-    ) values (
-      ${endpointHash},
-      ${context.householdId},
-      ${context.memberId},
-      ${input.endpoint},
-      ${input.keys.p256dh},
-      ${input.keys.auth},
-      now()
-    )
-    on conflict (endpoint_hash) do update set
-      household_id = excluded.household_id,
-      member_id = excluded.member_id,
-      endpoint = excluded.endpoint,
-      p256dh = excluded.p256dh,
-      auth = excluded.auth,
-      updated_at = now()
-  `
+  await createSubscriptionSaver(neon(databaseUrl) as SqlExecutor)(
+    context,
+    input
+  )
 }
 
 const defaultDependencies: PushSubscriptionDependencies = {
