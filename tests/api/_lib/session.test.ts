@@ -17,8 +17,8 @@ describe("session authorization", () => {
   it("maps the opaque cookie hash to its household member", async () => {
     const identity = {
       householdId: "household-rtd",
-      memberId: "member-cengizhan",
-      memberName: "Cengizhan",
+      memberId: "member-alex",
+      memberName: "Alex",
     }
     const lookup = vi.fn().mockResolvedValue(identity)
     const authorize = createSessionAuthorizer(lookup)

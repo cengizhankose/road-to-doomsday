@@ -227,14 +227,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "cengizhan_score": {
-          "name": "cengizhan_score",
+        "member_one_score": {
+          "name": "member_one_score",
           "type": "smallint",
           "primaryKey": false,
           "notNull": false
         },
-        "sinem_score": {
-          "name": "sinem_score",
+        "member_two_score": {
+          "name": "member_two_score",
           "type": "smallint",
           "primaryKey": false,
           "notNull": false
@@ -316,13 +316,13 @@
           "name": "title_progress_status_check",
           "value": "\"title_progress\".\"status\" in ('not_started', 'planned', 'watching', 'watched', 'skipped')"
         },
-        "title_progress_cengizhan_score_check": {
-          "name": "title_progress_cengizhan_score_check",
-          "value": "\"title_progress\".\"cengizhan_score\" is null or \"title_progress\".\"cengizhan_score\" between 0 and 10"
+        "title_progress_member_one_score_check": {
+          "name": "title_progress_member_one_score_check",
+          "value": "\"title_progress\".\"member_one_score\" is null or \"title_progress\".\"member_one_score\" between 0 and 10"
         },
-        "title_progress_sinem_score_check": {
-          "name": "title_progress_sinem_score_check",
-          "value": "\"title_progress\".\"sinem_score\" is null or \"title_progress\".\"sinem_score\" between 0 and 10"
+        "title_progress_member_two_score_check": {
+          "name": "title_progress_member_two_score_check",
+          "value": "\"title_progress\".\"member_two_score\" is null or \"title_progress\".\"member_two_score\" between 0 and 10"
         },
         "title_progress_position_check": {
           "name": "title_progress_position_check",

@@ -7,6 +7,7 @@ import {
 } from "../../api/progress"
 import {
   progressRecordSchema,
+  type HouseholdMember,
   type ProgressRecord,
 } from "../../src/domain/progress"
 import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
@@ -15,8 +16,8 @@ import { pushBindingId } from "../../api/_lib/auth"
 const record: ProgressRecord = {
   catalogId: "iron-man",
   status: "watched",
-  cengizhanScore: 8,
-  sinemScore: null,
+  memberOneScore: 8,
+  memberTwoScore: null,
   currentSeason: null,
   currentEpisode: null,
   plannedAt: null,
@@ -25,10 +26,15 @@ const record: ProgressRecord = {
   revision: 1,
 }
 
+const householdMembers: HouseholdMember[] = [
+  { id: "member-alex", name: "Alex", slot: 1 },
+  { id: "member-sam", name: "Sam", slot: 2 },
+]
+
 const session = {
   householdId: "household-rtd",
-  memberId: "member-cengizhan",
-  memberName: "Cengizhan",
+  memberId: "member-alex",
+  memberName: "Alex",
   sessionHash: "session-hash",
 }
 
@@ -92,11 +98,13 @@ describe("/api/progress household scope", () => {
         lastVerifiedAt: "2026-08-10T14:00:00.000Z",
       },
     ])
+    const listMembers = vi.fn().mockResolvedValue(householdMembers)
     const save = vi.fn()
     const handler = createProgressHandler({
       authorize,
       list,
       getSelections,
+      listMembers,
       listImages,
       save,
     })
@@ -115,7 +123,8 @@ describe("/api/progress household scope", () => {
           imageUri: "https://m.media-amazon.com/images/M/MV5Bexample._V1_SX250.jpg",
         }),
       ],
-      member: { id: "member-cengizhan", name: "Cengizhan" },
+      member: { id: "member-alex", name: "Alex" },
+      members: householdMembers,
       push: {
         publicKey: "vapid-public-key",
         // Lets a device notice its push row is bound to a previous session and
@@ -137,6 +146,7 @@ describe("/api/progress household scope", () => {
       authorize,
       list,
       getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
       save,
     })
     const result = response()
@@ -164,6 +174,7 @@ describe("/api/progress household scope", () => {
       authorize: vi.fn().mockResolvedValue(session),
       list: vi.fn(),
       getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue({
         saved: { ...planned, revision: 1 },
         current: null,
@@ -200,6 +211,7 @@ describe("/api/progress household scope", () => {
       authorize: vi.fn().mockResolvedValue(session),
       list: vi.fn(),
       getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
       save,
     })
     const result = response()
@@ -225,6 +237,7 @@ describe("/api/progress household scope", () => {
       authorize: vi.fn().mockResolvedValue(session),
       list: vi.fn(),
       getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
       save,
     })
     const result = response()
@@ -243,8 +256,8 @@ describe("/api/progress household scope", () => {
       householdId: "household-rtd",
       catalogId: "iron-man",
       status: "planned",
-      cengizhanScore: null,
-      sinemScore: null,
+      memberOneScore: null,
+      memberTwoScore: null,
       currentSeason: null,
       currentEpisode: null,
       plannedAt: "2026-08-14 18:00:00+00",
@@ -262,7 +275,7 @@ describe("/api/progress household scope", () => {
     vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
     const winner: ProgressRecord = {
       ...record,
-      note: "Sinem: bring snacks",
+      note: "Sam: bring snacks",
       revision: 5,
     }
     const notify = vi.fn()
@@ -270,6 +283,7 @@ describe("/api/progress household scope", () => {
       authorize: vi.fn().mockResolvedValue(session),
       list: vi.fn(),
       getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue({ saved: null, current: winner }),
       notify,
     })
@@ -315,6 +329,7 @@ describe("/api/progress household scope", () => {
       authorize: vi.fn().mockResolvedValue(null),
       list,
       getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
       save,
     })
     const result = response()

@@ -1,6 +1,6 @@
 {
-  "id": "03a01315-8e75-4216-b5b5-10e5698c6126",
-  "prevId": "36bac439-22ec-4b84-a76d-7da9ab744e41",
+  "id": "451d9b72-3161-41e1-b051-0842d6cc38d1",
+  "prevId": "03a01315-8e75-4216-b5b5-10e5698c6126",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -204,6 +204,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "slot": {
+          "name": "slot",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -244,10 +250,23 @@
             "household_id",
             "display_name"
           ]
+        },
+        "members_household_slot_unique": {
+          "name": "members_household_slot_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "household_id",
+            "slot"
+          ]
         }
       },
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "members_slot_check": {
+          "name": "members_slot_check",
+          "value": "\"members\".\"slot\" in (1, 2)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.push_subscriptions": {

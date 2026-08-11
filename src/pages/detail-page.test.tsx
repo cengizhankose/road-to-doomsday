@@ -5,6 +5,12 @@ import { describe, expect, it, vi } from "vitest"
 
 import { catalog } from "@/data/catalog"
 import { DetailPage } from "@/pages/detail-page"
+import type { HouseholdMember } from "@/domain/progress"
+
+const householdMembers: HouseholdMember[] = [
+  { id: "member-1", name: "Alex", slot: 1 },
+  { id: "member-2", name: "Sam", slot: 2 },
+]
 
 describe("DetailPage", () => {
   it("shows the verified poster without changing the editing flow", () => {
@@ -13,6 +19,7 @@ describe("DetailPage", () => {
     render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={item}
           image={{
             catalogId: "iron-man",
@@ -46,6 +53,7 @@ describe("DetailPage", () => {
     render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={item}
           progress={{ catalogId: item.id, status: "planned", plannedAt, revision: 1 }}
           onSave={save}
@@ -76,6 +84,7 @@ describe("DetailPage", () => {
     render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={item}
           progress={undefined}
           onSave={save}
@@ -88,7 +97,7 @@ describe("DetailPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Watched" }))
     await user.click(
-      within(screen.getByRole("group", { name: /cengizhan score/i })).getByRole(
+      within(screen.getByRole("group", { name: /alex score/i })).getByRole(
         "button",
         { name: "8" }
       )
@@ -103,7 +112,7 @@ describe("DetailPage", () => {
       expect.objectContaining({
         catalogId: "iron-man",
         status: "watched",
-        cengizhanScore: 8,
+        memberOneScore: 8,
       })
     )
   })
@@ -121,6 +130,7 @@ describe("DetailPage", () => {
     const { rerender } = render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={item}
           progress={first}
           onSave={save}
@@ -143,6 +153,7 @@ describe("DetailPage", () => {
     rerender(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={item}
           progress={saved}
           onSave={save}
@@ -177,6 +188,7 @@ describe("DetailPage", () => {
     const { rerender } = render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           {...props}
           progress={{ catalogId: item.id, status: "watching", revision: 4 }}
         />
@@ -190,11 +202,12 @@ describe("DetailPage", () => {
     rerender(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           {...props}
           progress={{
             catalogId: item.id,
             status: "watching",
-            note: "Sinem: bring snacks",
+            note: "Sam: bring snacks",
             plannedAt: "2026-08-20T18:00:00.000Z",
             revision: 5,
           }}
@@ -204,7 +217,7 @@ describe("DetailPage", () => {
 
     // Their values are adopted and visible, because nobody edited them here.
     expect(screen.getByLabelText(/shared note/i)).toHaveValue(
-      "Sinem: bring snacks",
+      "Sam: bring snacks",
     )
 
     await user.click(screen.getByRole("button", { name: /save progress/i }))
@@ -212,7 +225,7 @@ describe("DetailPage", () => {
     expect(save).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "watched", // this member's deliberate edit survives
-        note: "Sinem: bring snacks", // the other member's write is not clobbered
+        note: "Sam: bring snacks", // the other member's write is not clobbered
         plannedAt: "2026-08-20T18:00:00.000Z",
         revision: 5,
       }),
@@ -234,6 +247,7 @@ describe("DetailPage", () => {
     const { rerender } = render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           {...props}
           progress={{ catalogId: item.id, status: "watching", revision: 4 }}
         />
@@ -245,6 +259,7 @@ describe("DetailPage", () => {
     rerender(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           {...props}
           progress={{
             catalogId: item.id,
@@ -272,6 +287,7 @@ describe("DetailPage", () => {
     const { rerender } = render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={movie}
           progress={undefined}
           onSave={vi.fn()}
@@ -287,6 +303,7 @@ describe("DetailPage", () => {
     rerender(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={show}
           progress={undefined}
           onSave={vi.fn()}
@@ -309,6 +326,7 @@ describe("DetailPage", () => {
     render(
       <MemoryRouter>
         <DetailPage
+          members={householdMembers}
           item={item}
           progress={undefined}
           onSave={vi.fn()}
@@ -322,5 +340,74 @@ describe("DetailPage", () => {
     await user.click(screen.getByRole("button", { name: /set as next/i }))
 
     expect(selectNext).toHaveBeenCalledWith(item)
+  })
+
+  it("labels each score field with the household's own member names", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const ownMembers: HouseholdMember[] = [
+      { id: "member-1", name: "Ada", slot: 1 },
+      { id: "member-2", name: "Grace", slot: 2 },
+    ]
+
+    render(
+      <MemoryRouter>
+        <DetailPage
+          members={ownMembers}
+          item={item}
+          progress={undefined}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole("group", { name: "Ada score" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("group", { name: "Grace score" })
+    ).toBeInTheDocument()
+    // The previous owners' names must not survive anywhere in the markup.
+    expect(screen.queryByRole("group", { name: /alex/i })).toBeNull()
+
+    // Slot 1 owns `memberOneScore`, whatever that member happens to be called.
+    await user.click(
+      within(screen.getByRole("group", { name: "Grace score" })).getByRole(
+        "button",
+        { name: "9" }
+      )
+    )
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ memberTwoScore: 9, memberOneScore: null })
+    )
+  })
+
+  it("still renders when a household has not finished setup", () => {
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+
+    render(
+      <MemoryRouter>
+        <DetailPage
+          members={[]}
+          item={item}
+          progress={undefined}
+          onSave={vi.fn()}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
+    )
+
+    expect(
+      screen.getByRole("group", { name: "Member 1 score" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("group", { name: "Member 2 score" })
+    ).toBeInTheDocument()
   })
 })

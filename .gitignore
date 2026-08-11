@@ -27,5 +27,11 @@ dist-ssr
 *.sw?
 .vercel
 
-# Temporary operational scripts that talk to the production database.
+# Raw single-use invite links, written 0600 by `npm run setup` / `npm run invites`.
+.secrets/
+
+# Generated review output from `npm run images:import`.
+.cache/
+
+# Temporary operational scripts that talk to a live database.
 .tmp-ops/

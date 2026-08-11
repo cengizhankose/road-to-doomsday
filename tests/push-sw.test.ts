@@ -19,7 +19,7 @@ describe("push service worker", () => {
     })
     let pending: Promise<unknown> | undefined
     const payload = {
-      title: "Sinem planned Iron Man",
+      title: "Sam planned Iron Man",
       plannedAt: "2026-08-14T18:00:00.000Z",
       url: "/movies/iron-man",
     }

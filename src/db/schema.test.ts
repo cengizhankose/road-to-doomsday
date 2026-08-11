@@ -49,6 +49,7 @@ describe("private household database schema", () => {
         "id",
         "household_id",
         "display_name",
+        "slot",
         "created_at",
         "updated_at",
       ])
@@ -57,10 +58,19 @@ describe("private household database schema", () => {
     expect(memberConfig.foreignKeys[0]?.reference().foreignTable).toBe(
       households
     )
-    expect(memberConfig.uniqueConstraints).toHaveLength(1)
     expect(
-      memberConfig.uniqueConstraints[0]?.columns.map((column) => column.name)
-    ).toEqual(["household_id", "display_name"])
+      memberConfig.uniqueConstraints.map((constraint) =>
+        constraint.columns.map((column) => column.name)
+      )
+    ).toEqual([
+      ["household_id", "display_name"],
+      ["household_id", "slot"],
+    ])
+    // The slot is what maps a member onto one of the two score columns, so
+    // only the two values those columns exist for may be stored.
+    expect(
+      memberConfig.checks.map((constraint) => constraint.name)
+    ).toContain("members_slot_check")
 
     expect(columnNames(invites)).toContain("member_id")
     expect(

@@ -4,9 +4,14 @@ import type { CatalogItem } from "@/domain/catalog"
 import {
   getRouteCompletion,
   getSelectedRouteItem,
+  householdMemberSchema,
+  memberBySlot,
+  memberLabel,
   normalizeScore,
   normalizeSeriesPosition,
+  scoreFieldBySlot,
   shouldNotifyPlan,
+  type HouseholdMember,
   type ProgressMap,
 } from "@/domain/progress"
 
@@ -104,5 +109,53 @@ describe("progress selectors", () => {
         plannedAt: "2026-08-15T18:00:00.000Z",
       }),
     ).toBe(true)
+  })
+})
+
+describe("household members", () => {
+  const members: HouseholdMember[] = [
+    { id: "member-2", name: "Sam", slot: 2 },
+    { id: "member-1", name: "Alex", slot: 1 },
+  ]
+
+  it("resolves a member by slot regardless of the order they arrive in", () => {
+    expect(memberBySlot(members, 1)?.name).toBe("Alex")
+    expect(memberBySlot(members, 2)?.name).toBe("Sam")
+  })
+
+  it("labels each score field with whatever the household named itself", () => {
+    expect(memberLabel(members, 1)).toBe("Alex")
+    expect(memberLabel(members, 2)).toBe("Sam")
+
+    const renamed: HouseholdMember[] = [
+      { id: "member-1", name: "Ada", slot: 1 },
+      { id: "member-2", name: "Grace", slot: 2 },
+    ]
+    expect(renamed.map((member) => memberLabel(renamed, member.slot))).toEqual([
+      "Ada",
+      "Grace",
+    ])
+  })
+
+  it("falls back to a neutral label rather than mislabelling a score", () => {
+    expect(memberLabel([], 1)).toBe("Member 1")
+    expect(memberLabel([members[0]], 1)).toBe("Member 1")
+  })
+
+  it("maps each slot onto its own score field", () => {
+    expect(scoreFieldBySlot[1]).toBe("memberOneScore")
+    expect(scoreFieldBySlot[2]).toBe("memberTwoScore")
+  })
+
+  it("rejects a member outside the two-slot contract", () => {
+    expect(
+      householdMemberSchema.safeParse({ id: "m", name: "Alex", slot: 1 }).success
+    ).toBe(true)
+    expect(
+      householdMemberSchema.safeParse({ id: "m", name: "Alex", slot: 3 }).success
+    ).toBe(false)
+    expect(
+      householdMemberSchema.safeParse({ id: "m", name: "", slot: 1 }).success
+    ).toBe(false)
   })
 })

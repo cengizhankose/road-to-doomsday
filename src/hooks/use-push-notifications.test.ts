@@ -25,9 +25,9 @@ describe("usePushNotifications member binding", () => {
   })
 
   it("requires a new opt-in when the existing subscription belongs to the other member", async () => {
-    localStorage.setItem("rtd-push-member", "member-sinem")
+    localStorage.setItem("rtd-push-member", "member-sam")
     const { result } = renderHook(() =>
-      usePushNotifications("vapid-public-key", "member-cengizhan", "binding-current"),
+      usePushNotifications("vapid-public-key", "member-alex", "binding-current"),
     )
 
     await waitFor(() => expect(result.current.subscribed).toBe(false))
@@ -37,7 +37,7 @@ describe("usePushNotifications member binding", () => {
     })
 
     expect(enable).toHaveBeenCalledWith("vapid-public-key")
-    expect(localStorage.getItem("rtd-push-member")).toBe("member-cengizhan")
+    expect(localStorage.getItem("rtd-push-member")).toBe("member-alex")
     expect(result.current.subscribed).toBe(true)
   })
 })
@@ -65,13 +65,13 @@ describe("usePushNotifications session rebinding", () => {
 
   it("re-registers the device when the session behind its binding has changed", async () => {
     // The device opted in under an earlier session.
-    localStorage.setItem("rtd-push-member", "member-cengizhan")
+    localStorage.setItem("rtd-push-member", "member-alex")
     localStorage.setItem("rtd-push-binding", "binding-from-the-old-session")
 
     const { result } = renderHook(() =>
       usePushNotifications(
         "vapid-public-key",
-        "member-cengizhan",
+        "member-alex",
         "binding-from-the-current-session",
       ),
     )
@@ -86,13 +86,13 @@ describe("usePushNotifications session rebinding", () => {
   })
 
   it("costs no request when the binding is already current", async () => {
-    localStorage.setItem("rtd-push-member", "member-cengizhan")
+    localStorage.setItem("rtd-push-member", "member-alex")
     localStorage.setItem("rtd-push-binding", "binding-from-the-current-session")
 
     const { result } = renderHook(() =>
       usePushNotifications(
         "vapid-public-key",
-        "member-cengizhan",
+        "member-alex",
         "binding-from-the-current-session",
       ),
     )
@@ -102,7 +102,7 @@ describe("usePushNotifications session rebinding", () => {
   })
 
   it("does not re-register a device whose permission was revoked", async () => {
-    localStorage.setItem("rtd-push-member", "member-cengizhan")
+    localStorage.setItem("rtd-push-member", "member-alex")
     localStorage.setItem("rtd-push-binding", "stale")
     Object.defineProperty(window, "Notification", {
       configurable: true,
@@ -110,7 +110,7 @@ describe("usePushNotifications session rebinding", () => {
     })
 
     const { result } = renderHook(() =>
-      usePushNotifications("vapid-public-key", "member-cengizhan", "current"),
+      usePushNotifications("vapid-public-key", "member-alex", "current"),
     )
 
     await waitFor(() => expect(result.current.subscribed).toBe(false))
@@ -144,7 +144,7 @@ describe("usePushNotifications failure handling", () => {
     const failure = new Error("Push subscription failed with 500")
     enable.mockRejectedValueOnce(failure)
     const { result } = renderHook(() =>
-      usePushNotifications("vapid-public-key", "member-cengizhan", "binding-current"),
+      usePushNotifications("vapid-public-key", "member-alex", "binding-current"),
     )
 
     let returned: boolean | undefined
@@ -171,7 +171,7 @@ describe("usePushNotifications failure handling", () => {
   it("reports an explicit denial as blocked rather than as an error", async () => {
     enable.mockResolvedValue("denied")
     const { result } = renderHook(() =>
-      usePushNotifications("vapid-public-key", "member-cengizhan", "binding-current"),
+      usePushNotifications("vapid-public-key", "member-alex", "binding-current"),
     )
 
     await act(async () => {
@@ -187,7 +187,7 @@ describe("usePushNotifications failure handling", () => {
   it("does not tell the member to change settings when they merely dismissed the prompt", async () => {
     enable.mockResolvedValue("default")
     const { result } = renderHook(() =>
-      usePushNotifications("vapid-public-key", "member-cengizhan", "binding-current"),
+      usePushNotifications("vapid-public-key", "member-alex", "binding-current"),
     )
 
     await act(async () => {

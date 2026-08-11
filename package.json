@@ -1,8 +1,14 @@
 {
   "name": "road-to-doomsday",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
+  "license": "MIT",
+  "description": "A mobile-first PWA for two people tracking their way through the MCU toward Avengers: Doomsday.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cengizhankose/road-to-doomsday.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -13,8 +19,9 @@
     "test:run": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "setup": "tsx scripts/setup-household.ts",
     "images:import": "tsx scripts/import-catalog-images.ts",
-    "invites:create": "tsx scripts/create-member-invites.ts",
+    "invites": "tsx scripts/create-member-invites.ts",
     "preview": "vite preview"
   },
   "dependencies": {

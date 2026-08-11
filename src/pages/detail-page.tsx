@@ -20,13 +20,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { PosterCredit } from "@/components/poster-credit"
 import type { CatalogItem } from "@/domain/catalog"
 import type { CatalogImage } from "@/domain/images"
-import type { ProgressRecord, WatchStatus } from "@/domain/progress"
+import type {
+  HouseholdMember,
+  ProgressRecord,
+  WatchStatus,
+} from "@/domain/progress"
+import { memberLabel } from "@/domain/progress"
 import { cn } from "@/lib/utils"
 
 interface DetailPageProps {
   item: CatalogItem
   image?: CatalogImage
   progress?: ProgressRecord
+  /** Both household members, so each score field is labelled with its owner. */
+  members: HouseholdMember[]
   onSave: (progress: ProgressRecord) => unknown | Promise<unknown>
   onSelectNext: (item: CatalogItem) => unknown | Promise<unknown>
   selectedNext: boolean
@@ -115,6 +122,7 @@ export function DetailPage({
   item,
   image,
   progress,
+  members,
   onSave,
   onSelectNext,
   selectedNext,
@@ -124,8 +132,8 @@ export function DetailPage({
     () => ({
       catalogId: item.id,
       status: progress?.status ?? "not_started",
-      cengizhanScore: progress?.cengizhanScore ?? null,
-      sinemScore: progress?.sinemScore ?? null,
+      memberOneScore: progress?.memberOneScore ?? null,
+      memberTwoScore: progress?.memberTwoScore ?? null,
       currentSeason:
         progress?.currentSeason ?? (item.seasonEpisodeCounts ? 1 : null),
       currentEpisode:
@@ -330,14 +338,14 @@ export function DetailPage({
         <Card className="border-white/8 bg-card/70">
           <CardContent className="space-y-5">
             <ScorePicker
-              label="Cengizhan"
-              value={draft.cengizhanScore ?? null}
-              onChange={(value) => update("cengizhanScore", value)}
+              label={memberLabel(members, 1)}
+              value={draft.memberOneScore ?? null}
+              onChange={(value) => update("memberOneScore", value)}
             />
             <ScorePicker
-              label="Sinem"
-              value={draft.sinemScore ?? null}
-              onChange={(value) => update("sinemScore", value)}
+              label={memberLabel(members, 2)}
+              value={draft.memberTwoScore ?? null}
+              onChange={(value) => update("memberTwoScore", value)}
             />
           </CardContent>
         </Card>

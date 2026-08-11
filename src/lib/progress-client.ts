@@ -3,6 +3,7 @@ import { z } from "zod"
 import { routeSchema } from "@/domain/catalog"
 import { catalogImagesSchema } from "@/domain/images"
 import {
+  householdMemberSchema,
   progressRecordSchema,
   routeSelectionsSchema,
   type ProgressRecord,
@@ -17,6 +18,7 @@ const progressResponseSchema = z
     member: z
       .object({ id: z.string().min(1), name: z.string().min(1) })
       .strict(),
+    members: z.array(householdMemberSchema),
     push: z
       .object({
         publicKey: z.string().min(1).nullable(),
@@ -105,6 +107,7 @@ export function createProgressClient(fetcher: Fetcher = globalFetcher) {
           payload.images.map((image) => [image.catalogId, image])
         ),
         member: payload.member,
+        members: [...payload.members].sort((left, right) => left.slot - right.slot),
         pushPublicKey: payload.push.publicKey,
         pushBindingId: payload.push.bindingId,
       }

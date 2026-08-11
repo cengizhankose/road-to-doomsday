@@ -27,6 +27,10 @@ export const members = pgTable(
       .notNull()
       .references(() => households.id, { onDelete: "cascade" }),
     displayName: text("display_name").notNull(),
+    // Which of the two score columns on `title_progress` belongs to this
+    // member. Storing it beats deriving it from insertion order: a member who
+    // is renamed or recreated must keep the scores they already gave.
+    slot: smallint("slot").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -39,6 +43,8 @@ export const members = pgTable(
       table.householdId,
       table.displayName
     ),
+    unique("members_household_slot_unique").on(table.householdId, table.slot),
+    check("members_slot_check", sql`${table.slot} in (1, 2)`),
   ]
 )
 
@@ -153,8 +159,8 @@ export const titleProgress = pgTable(
       .references(() => households.id, { onDelete: "cascade" }),
     catalogId: text("catalog_id").notNull(),
     status: text("status").notNull(),
-    cengizhanScore: smallint("cengizhan_score"),
-    sinemScore: smallint("sinem_score"),
+    memberOneScore: smallint("member_one_score"),
+    memberTwoScore: smallint("member_two_score"),
     currentSeason: smallint("current_season"),
     currentEpisode: smallint("current_episode"),
     plannedAt: timestamp("planned_at", { withTimezone: true, mode: "string" }),
@@ -175,12 +181,12 @@ export const titleProgress = pgTable(
       sql`${table.status} in ('not_started', 'planned', 'watching', 'watched', 'skipped')`
     ),
     check(
-      "title_progress_cengizhan_score_check",
-      sql`${table.cengizhanScore} is null or ${table.cengizhanScore} between 0 and 10`
+      "title_progress_member_one_score_check",
+      sql`${table.memberOneScore} is null or ${table.memberOneScore} between 0 and 10`
     ),
     check(
-      "title_progress_sinem_score_check",
-      sql`${table.sinemScore} is null or ${table.sinemScore} between 0 and 10`
+      "title_progress_member_two_score_check",
+      sql`${table.memberTwoScore} is null or ${table.memberTwoScore} between 0 and 10`
     ),
     check(
       "title_progress_position_check",

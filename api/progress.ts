@@ -10,9 +10,16 @@ import { progressPatchSchema } from "../src/api/contracts.js"
 import { catalog } from "../src/data/catalog.js"
 import type { Route } from "../src/domain/catalog.js"
 import { catalogImageSchema, type CatalogImage } from "../src/domain/images.js"
-import type { ProgressRecord, RouteSelections } from "../src/domain/progress.js"
-import { watchStatusSchema } from "../src/domain/progress.js"
-import { routeSelections, titleProgress } from "../src/db/schema.js"
+import type {
+  HouseholdMember,
+  ProgressRecord,
+  RouteSelections,
+} from "../src/domain/progress.js"
+import {
+  householdMemberSchema,
+  watchStatusSchema,
+} from "../src/domain/progress.js"
+import { members, routeSelections, titleProgress } from "../src/db/schema.js"
 
 type SaveResult = {
   saved: ProgressRecord | null
@@ -23,6 +30,7 @@ interface ProgressDependencies {
   authorize(req: VercelRequest): Promise<SessionContext | null>
   list(householdId: string): Promise<ProgressRecord[]>
   getSelections(householdId: string): Promise<RouteSelections>
+  listMembers(householdId: string): Promise<HouseholdMember[]>
   listImages?(): Promise<CatalogImage[]>
   save(householdId: string, input: ProgressRecord): Promise<SaveResult>
   notify?(
@@ -64,8 +72,8 @@ export function serializeProgressRow(
   return {
     catalogId: row.catalogId,
     status: watchStatusSchema.parse(row.status),
-    cengizhanScore: row.cengizhanScore,
-    sinemScore: row.sinemScore,
+    memberOneScore: row.memberOneScore,
+    memberTwoScore: row.memberTwoScore,
     currentSeason: row.currentSeason,
     currentEpisode: row.currentEpisode,
     plannedAt: isoInstant(row.plannedAt),
@@ -95,6 +103,32 @@ async function getSelections(householdId: string): Promise<RouteSelections> {
     }
   }
   return selections
+}
+
+/**
+ * The two display names the UI labels its score fields with. A row that does
+ * not fit the two-slot contract is dropped rather than guessed at, so a
+ * half-migrated household falls back to neutral labels instead of attributing
+ * a score to the wrong person.
+ */
+async function listMembers(householdId: string): Promise<HouseholdMember[]> {
+  const rows = await database()
+    .select({
+      id: members.id,
+      name: members.displayName,
+      slot: members.slot,
+    })
+    .from(members)
+    .where(eq(members.householdId, householdId))
+    .orderBy(members.slot)
+
+  const household: HouseholdMember[] = []
+  for (const row of rows) {
+    const parsed = householdMemberSchema.safeParse(row)
+    if (parsed.success) household.push(parsed.data)
+    else console.error("Skipping unusable member row", row.id)
+  }
+  return household
 }
 
 /**
@@ -148,8 +182,8 @@ async function saveProgress(
   const db = database()
   const values = {
     status: input.status,
-    cengizhanScore: input.cengizhanScore ?? null,
-    sinemScore: input.sinemScore ?? null,
+    memberOneScore: input.memberOneScore ?? null,
+    memberTwoScore: input.memberTwoScore ?? null,
     currentSeason: input.currentSeason ?? null,
     currentEpisode: input.currentEpisode ?? null,
     plannedAt: input.plannedAt || null,
@@ -202,6 +236,7 @@ const defaultDependencies: ProgressDependencies = {
   authorize: authorizeSession,
   list: listProgress,
   getSelections,
+  listMembers,
   listImages: listCatalogImages,
   save: saveProgress,
   notify: notifyPlan,
@@ -222,9 +257,10 @@ export function createProgressHandler(
     const { householdId } = context
 
     if (req.method === "GET") {
-      const [items, selections, images] = await Promise.all([
+      const [items, selections, householdMembers, images] = await Promise.all([
         dependencies.list(householdId),
         dependencies.getSelections(householdId),
+        dependencies.listMembers(householdId),
         dependencies.listImages?.() ?? Promise.resolve([]),
       ])
       return res.status(200).json({
@@ -232,6 +268,7 @@ export function createProgressHandler(
         selections,
         images,
         member: { id: context.memberId, name: context.memberName },
+        members: householdMembers,
         push: {
           publicKey: process.env.VAPID_PUBLIC_KEY || null,
           bindingId: pushBindingId(context.sessionHash),

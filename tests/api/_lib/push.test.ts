@@ -20,14 +20,14 @@ function capturingSql(rows: Record<string, unknown>[] = []) {
 
 const context = {
   householdId: "household-rtd",
-  memberId: "member-cengizhan",
-  memberName: "Cengizhan",
+  memberId: "member-alex",
+  memberName: "Alex",
   sessionHash: "session-hash",
 }
 
 const recipient = {
   endpointHash: "endpoint-hash",
-  endpoint: "https://push.example.test/sinem",
+  endpoint: "https://push.example.test/sam",
   p256dh: "public-key",
   auth: "auth-secret",
 }
@@ -51,11 +51,11 @@ describe("plan push notifications", () => {
 
     expect(listRecipients).toHaveBeenCalledWith(
       "household-rtd",
-      "member-cengizhan"
+      "member-alex"
     )
     const payload = JSON.parse(deliver.mock.calls[0][1])
     expect(payload).toEqual({
-      title: "Cengizhan planned Iron Man",
+      title: "Alex planned Iron Man",
       plannedAt: "2026-08-14T18:00:00.000Z",
       tag: "plan-iron-man-2026-08-14T18:00:00.000Z",
       url: "/movies/iron-man",
@@ -74,7 +74,7 @@ describe("plan push notifications", () => {
 
     const recipients = await createRecipientLister(sql)(
       "household-rtd",
-      "member-cengizhan"
+      "member-alex"
     )
 
     expect(recipients).toEqual([recipient])
@@ -95,13 +95,13 @@ describe("plan push notifications", () => {
     // ...and it stays scoped to the household, excluding the sender.
     expect(query).toMatch(/push_subscriptions\.household_id\s*=\s*\?/)
     expect(query).toMatch(/push_subscriptions\.member_id\s*<>\s*\?/)
-    expect(calls[0].params).toEqual(["household-rtd", "member-cengizhan"])
+    expect(calls[0].params).toEqual(["household-rtd", "member-alex"])
   })
 
   it("does not let a session vouch for another member's or household's subscription", async () => {
     const { sql, calls } = capturingSql()
 
-    await createRecipientLister(sql)("household-rtd", "member-cengizhan")
+    await createRecipientLister(sql)("household-rtd", "member-alex")
     const query = calls[0].sql
 
     expect(query).toMatch(/sessions\.household_id\s*=\s*push_subscriptions\.household_id/)

@@ -31,10 +31,15 @@ CREATE TABLE "push_subscriptions" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+--> Before this migration a household was a single shared login with no member
+--> identities at all. Any household that already exists therefore needs two
+--> placeholder members so its rows keep a valid owner; a fresh database has no
+--> household yet and seeds nothing here, leaving `npm run setup` to create the
+--> household and both members under their real names.
 INSERT INTO "members" ("id", "household_id", "display_name")
-SELECT "id" || ':cengizhan', "id", 'Cengizhan' FROM "households";--> statement-breakpoint
+SELECT "id" || ':member-1', "id", 'Member 1' FROM "households";--> statement-breakpoint
 INSERT INTO "members" ("id", "household_id", "display_name")
-SELECT "id" || ':sinem', "id", 'Sinem' FROM "households";--> statement-breakpoint
+SELECT "id" || ':member-2', "id", 'Member 2' FROM "households";--> statement-breakpoint
 DELETE FROM "sessions";--> statement-breakpoint
 DELETE FROM "invites";--> statement-breakpoint
 ALTER TABLE "invites" ADD COLUMN "member_id" text NOT NULL;--> statement-breakpoint

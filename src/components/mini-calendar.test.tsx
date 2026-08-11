@@ -32,8 +32,8 @@ const progress: ProgressMap = {
   "iron-man": {
     catalogId: "iron-man",
     status: "planned",
-    cengizhanScore: 8,
-    sinemScore: 7,
+    memberOneScore: 8,
+    memberTwoScore: 7,
     note: "Keep this",
     plannedAt: new Date(2026, 7, 15, 19, 30).toISOString(),
     revision: 4,

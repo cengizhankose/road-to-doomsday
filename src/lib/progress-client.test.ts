@@ -24,7 +24,11 @@ describe("progress client", () => {
           items: [],
           selections: { movies: null, series: null },
           images: [image],
-          member: { id: "member-cengizhan", name: "Cengizhan" },
+          member: { id: "member-alex", name: "Alex" },
+          members: [
+            { id: "member-alex", name: "Alex", slot: 1 },
+            { id: "member-sam", name: "Sam", slot: 2 },
+          ],
           push: { publicKey: "vapid-public-key", bindingId: "binding-abc" },
         }),
         {
@@ -38,7 +42,7 @@ describe("progress client", () => {
     const state = await client.getAll()
 
     expect(state.images["iron-man"]).toEqual(image)
-    expect(state.member).toEqual({ id: "member-cengizhan", name: "Cengizhan" })
+    expect(state.member).toEqual({ id: "member-alex", name: "Alex" })
     expect(state.pushPublicKey).toBe("vapid-public-key")
     expect(state.pushBindingId).toBe("binding-abc")
 
@@ -68,7 +72,7 @@ describe("progress client", () => {
     const current = {
       catalogId: "iron-man",
       status: "watching" as const,
-      note: "Sinem: bring snacks",
+      note: "Sam: bring snacks",
       revision: 5,
     }
     const fetcher = vi.fn().mockResolvedValue(
@@ -106,8 +110,8 @@ describe("progress client", () => {
     const saved = {
       catalogId: "iron-man",
       status: "planned" as const,
-      cengizhanScore: null,
-      sinemScore: null,
+      memberOneScore: null,
+      memberTwoScore: null,
       currentSeason: null,
       currentEpisode: null,
       plannedAt: "2026-08-14T18:00:00.000Z",

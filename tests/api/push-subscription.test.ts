@@ -7,8 +7,8 @@ import {
 
 const session = {
   householdId: "household-rtd",
-  memberId: "member-cengizhan",
-  memberName: "Cengizhan",
+  memberId: "member-alex",
+  memberName: "Alex",
   sessionHash: "session-hash",
 }
 
@@ -190,7 +190,7 @@ describe("/api/push-subscription", () => {
     expect(insert.params).toEqual([
       expect.any(String), // endpoint_hash
       "household-rtd",
-      "member-cengizhan",
+      "member-alex",
       "session-hash",
       "https://web.push.apple.com/subscription/1",
       "public-key",

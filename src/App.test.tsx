@@ -33,7 +33,11 @@ const sharedProgressPayload = {
   items: [],
   selections: { movies: null, series: null },
   images: [],
-  member: { id: "member-cengizhan", name: "Cengizhan" },
+  member: { id: "member-alex", name: "Alex" },
+  members: [
+    { id: "member-alex", name: "Alex", slot: 1 },
+    { id: "member-sam", name: "Sam", slot: 2 },
+  ],
   push: { publicKey: null, bindingId: "binding-abc" },
 }
 
@@ -101,7 +105,7 @@ describe("App mutation failures", () => {
     const theirs = {
       catalogId: "iron-man",
       status: "watching",
-      note: "Sinem: bring snacks",
+      note: "Sam: bring snacks",
       revision: 5,
     }
     const patches: unknown[] = []
@@ -142,7 +146,7 @@ describe("App mutation failures", () => {
     // The conflict response teaches the form what actually won.
     await waitFor(() =>
       expect(screen.getByLabelText(/shared note/i)).toHaveValue(
-        "Sinem: bring snacks"
+        "Sam: bring snacks"
       )
     )
 
@@ -153,7 +157,7 @@ describe("App mutation failures", () => {
     // The retry keeps this member's edit and preserves theirs.
     expect(patches[1]).toMatchObject({
       status: "watched",
-      note: "Sinem: bring snacks",
+      note: "Sam: bring snacks",
       revision: 5,
     })
   })

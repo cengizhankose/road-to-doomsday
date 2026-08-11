@@ -5,8 +5,8 @@ import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
 
 const session = {
   householdId: "household-rtd",
-  memberId: "member-cengizhan",
-  memberName: "Cengizhan",
+  memberId: "member-alex",
+  memberName: "Alex",
   sessionHash: "session-hash",
 }
 

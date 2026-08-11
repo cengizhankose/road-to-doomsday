@@ -7,7 +7,7 @@ describe("progressPatchSchema", () => {
     catalogId: "iron-man",
     status: "watched",
     revision: 0,
-    cengizhanScore: 8,
+    memberOneScore: 8,
   }
 
   it("accepts a bounded known catalog update", () => {
@@ -23,7 +23,7 @@ describe("progressPatchSchema", () => {
 
   it("rejects scores outside 0-10", () => {
     expect(
-      progressPatchSchema.safeParse({ ...valid, cengizhanScore: 11 }).success,
+      progressPatchSchema.safeParse({ ...valid, memberOneScore: 11 }).success,
     ).toBe(false)
   })
 
@@ -84,10 +84,10 @@ describe("progressPatchSchema", () => {
 
   it("rejects fractional scores that the smallint columns cannot hold", () => {
     expect(
-      progressPatchSchema.safeParse({ ...valid, cengizhanScore: 7.5 }).success,
+      progressPatchSchema.safeParse({ ...valid, memberOneScore: 7.5 }).success,
     ).toBe(false)
     expect(
-      progressPatchSchema.safeParse({ ...valid, sinemScore: 7.5 }).success,
+      progressPatchSchema.safeParse({ ...valid, memberTwoScore: 7.5 }).success,
     ).toBe(false)
   })
 })

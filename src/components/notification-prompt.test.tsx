@@ -8,7 +8,7 @@ describe("NotificationPrompt", () => {
     const onEnable = vi.fn()
     render(
       <NotificationPrompt
-        memberName="Cengizhan"
+        memberName="Alex"
         supported
         subscribed={false}
         enabling={false}
@@ -16,7 +16,7 @@ describe("NotificationPrompt", () => {
       />
     )
 
-    expect(screen.getByText("Cengizhan's device")).toBeInTheDocument()
+    expect(screen.getByText("Alex's device")).toBeInTheDocument()
     fireEvent.click(
       screen.getByRole("button", { name: "Enable notifications" })
     )
@@ -27,7 +27,7 @@ describe("NotificationPrompt", () => {
     const onEnable = vi.fn()
     render(
       <NotificationPrompt
-        memberName="Cengizhan"
+        memberName="Alex"
         supported
         subscribed={false}
         enabling={false}
@@ -46,7 +46,7 @@ describe("NotificationPrompt", () => {
   it("tells the member when the browser itself blocked notifications", () => {
     render(
       <NotificationPrompt
-        memberName="Sinem"
+        memberName="Sam"
         supported
         subscribed={false}
         enabling={false}
@@ -63,7 +63,7 @@ describe("NotificationPrompt", () => {
   it("stays out of the way on unsupported browsers", () => {
     const { container } = render(
       <NotificationPrompt
-        memberName="Sinem"
+        memberName="Sam"
         supported={false}
         subscribed={false}
         enabling={false}

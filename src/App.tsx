@@ -45,6 +45,7 @@ function DetailRoute({
       item={item}
       image={shared.images[item.id]}
       progress={shared.progress[item.id]}
+      members={shared.members}
       onSave={(next) =>
         shouldNotifyPlan(shared.progress[item.id], next)
           ? shared.schedule(next)

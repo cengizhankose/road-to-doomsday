@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import type { ProgressRecord, SharedProgressState } from "@/domain/progress"
+import type {
+  HouseholdMember,
+  ProgressRecord,
+  SharedProgressState,
+} from "@/domain/progress"
 import {
   conflictRecord,
   progressClient,
@@ -9,11 +13,20 @@ import {
 
 const queryKey = ["shared-progress"] as const
 const localStorageKey = "rtd-dev-progress"
+
+// Development runs against localStorage rather than a household, so it needs
+// stand-in members. Production always replaces these with the real rows.
+const devMembers: HouseholdMember[] = [
+  { id: "local-member-1", name: "Member 1", slot: 1 },
+  { id: "local-member-2", name: "Member 2", slot: 2 },
+]
+
 const emptyState: SharedProgressState = {
   progress: {},
   selections: { movies: null, series: null },
   images: {},
-  member: { id: "local-cengizhan", name: "Cengizhan" },
+  member: { id: devMembers[0].id, name: devMembers[0].name },
+  members: devMembers,
   pushPublicKey: null,
   pushBindingId: "local",
 }
@@ -29,6 +42,8 @@ function readLocalState(): SharedProgressState {
         images: (parsed.images ?? {}) as SharedProgressState["images"],
         member: (parsed.member ??
           emptyState.member) as SharedProgressState["member"],
+        members: (parsed.members ??
+          emptyState.members) as SharedProgressState["members"],
         pushPublicKey: (parsed.pushPublicKey ?? null) as string | null,
         pushBindingId: (parsed.pushBindingId ?? "local") as string,
       }
@@ -136,6 +151,7 @@ export function useSharedProgress() {
     selections: state.selections,
     images: state.images,
     member: state.member,
+    members: state.members,
     pushPublicKey: state.pushPublicKey,
     pushBindingId: state.pushBindingId,
     loading: query.isLoading,

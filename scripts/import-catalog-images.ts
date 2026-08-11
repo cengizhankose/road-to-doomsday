@@ -12,8 +12,7 @@
  */
 import { mkdir, writeFile } from "node:fs/promises"
 import { request as httpsRequest } from "node:https"
-import { homedir } from "node:os"
-import { dirname, join } from "node:path"
+import { dirname, resolve } from "node:path"
 
 import { neon } from "@neondatabase/serverless"
 
@@ -213,13 +212,13 @@ if (mappings.length !== catalog.length) {
   )
 }
 
+// A review artefact, not a secret: every value in it is a public poster URL.
+// It stays out of git because it is generated output, not source.
 const outputPath =
   process.env.IMAGE_MAPPING_OUTPUT ??
-  join(homedir(), ".hermes", "secure", "road-to-doomsday-catalog-images.json")
+  resolve(process.cwd(), ".cache", "catalog-images.json")
 await mkdir(dirname(outputPath), { recursive: true })
-await writeFile(outputPath, `${JSON.stringify(mappings, null, 2)}\n`, {
-  mode: 0o600,
-})
+await writeFile(outputPath, `${JSON.stringify(mappings, null, 2)}\n`)
 
 const apply = process.argv.includes("--apply")
 if (apply) {

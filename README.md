@@ -1,109 +1,135 @@
 # Road to Doomsday
 
-A private, mobile-first MCU watch tracker for two people. Movies and series remain independent routes toward *Avengers: Doomsday*.
+A mobile-first PWA where two people track their way through the 63-title MCU
+catalog toward *Avengers: Doomsday* — movies and series as two independent
+routes, one shared plan, no accounts.
 
-## Stack
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home screen showing both route progress rings and the shared calendar" width="30%">
+  <img src="docs/screenshots/catalog.png" alt="Movies catalog with per-title watch status" width="30%">
+  <img src="docs/screenshots/detail.png" alt="Title detail page with both members' scores and a planned date" width="30%">
+</p>
 
-- React 19, Vite, TypeScript, Tailwind CSS 4
-- shadcn/ui preset `b6WJzpzZli` on Radix UI
-- TanStack Query with explicit-save updates and no polling
-- Vercel Functions + Neon Postgres + Drizzle
-- Vitest, Testing Library, ESLint
-- Installable PWA
+## Features
 
-## Request model
+- **Two routes, one household.** 39 movies and 24 series tracked separately, each with its own "watch next" pick.
+- **Both opinions.** Every title holds a score from each member, labelled with their own names.
+- **Shared calendar.** Plan a watch date; the other person gets a web push notification.
+- **Episode position** for series, so a half-finished show remembers where you stopped.
+- **No accounts.** Each person joins once through a single-use invite link.
+- **Installable and offline-tolerant.** Real PWA, no polling — saves are explicit.
 
-- One `GET /api/progress` on initial production load (progress, manual selections, catalog images, member identity, and public push config)
-- One `PATCH /api/progress` per explicit progress Save
-- Calendar scheduling uses the same progress PATCH and requests one best-effort push delivery; it does not refetch
-- One `PATCH /api/selection` per explicit “Set as next” action
-- One `POST /api/push-subscription` only when a member explicitly enables notifications on a device
-- No polling, realtime subscription, focus refetch, reconnect refetch, or save-after-refetch
-- Static MCU catalog ships in the application bundle
-- PWA service worker never caches `/api/*`
+## Architecture
 
-## Local development
+```
+React 19 + Vite + Tailwind 4         Vercel Functions            Neon Postgres
+┌───────────────────────────┐        ┌──────────────────┐        ┌────────────┐
+│ PWA (installable)         │        │ /api/join        │        │ households │
+│  · TanStack Query         │ ─────► │ /api/progress    │ ─────► │ members    │
+│  · explicit saves only    │  fetch │ /api/selection   │ drizzle│ progress   │
+│  · static catalog bundled │        │ /api/push-…      │        │ sessions   │
+└───────────────────────────┘        └──────────────────┘        └────────────┘
+        ▲                                     │
+        └──────── web push ───────────────────┘
+```
+
+One `GET /api/progress` on load; one `PATCH` per explicit save. No polling, no
+focus refetch, no realtime subscription. The catalog ships in the bundle, so
+only per-household state crosses the network. Auth is a single-use invite
+exchanged for an `__Host-` session cookie — see [SECURITY.md](SECURITY.md).
+
+## Quick start
 
 ```bash
 npm install
 npm run dev
 ```
 
-Development mode uses a clearly isolated localStorage adapter (`rtd-dev-progress`) so UI work does not require a live database. Production builds always use the authenticated API.
-
-## Quality gates
+Development runs against an isolated `localStorage` adapter, so the UI works
+with no database. Production builds always use the authenticated API.
 
 ```bash
-npm run test:run
+npm run test:run   # 205 tests
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-## Database and environment
+## Deploy your own
 
-Copy `.env.example` to `.env.local` and set:
+1. **Create a Postgres database.** [Neon](https://neon.tech) works on the free
+   tier; any Postgres does. Copy the pooled connection string.
 
-```text
-DATABASE_URL=<Neon pooled connection string>
-APP_ORIGIN=https://<production-domain>
-VAPID_SUBJECT=mailto:<contact-email>
-VAPID_PUBLIC_KEY=<public VAPID key>
-VAPID_PRIVATE_KEY=<private VAPID key>
-```
+2. **Configure the environment.** Copy `.env.example` to `.env.local` and set
+   `DATABASE_URL` and `APP_ORIGIN` (your exact production origin).
 
-Apply checked-in migrations:
+3. **Apply the schema.**
 
-```bash
-npm run db:migrate
-```
+   ```bash
+   npm run db:migrate
+   ```
 
-The database enforces credential hashing, household/member scope, one manual selection per route, status/score/progress limits, and item-level revisions. Stale writes return `409 Conflict` instead of silently overwriting another device.
+4. **Create the household and both invite links.**
+
+   ```bash
+   APP_ORIGIN=https://your-app.vercel.app npm run setup -- "Alex" "Sam"
+   ```
+
+   Add `--household "Movie Night"` to name it. The two single-use links are
+   written to `.secrets/invite-links.json` with mode `0600` — they are never
+   printed, and `.secrets/` is gitignored.
+
+5. **Import poster artwork** (optional but recommended):
+
+   ```bash
+   npm run images:import            # dry run, writes a review file
+   npm run images:import -- --apply
+   ```
+
+6. **Enable web push** (optional):
+
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+
+   Set `VAPID_SUBJECT` (a `mailto:` address), `VAPID_PUBLIC_KEY`, and
+   `VAPID_PRIVATE_KEY`. Skip this and everything works except notifications.
+
+7. **Deploy to Vercel.** Import the repo, then add `DATABASE_URL`,
+   `APP_ORIGIN`, and the three `VAPID_*` values as Production environment
+   variables. The private VAPID key belongs only there.
+
+8. **Send each person their link.** Each works once. Open it on the device you
+   want to use, then install the app to the Home Screen.
+
+> On iPhone/iPad, web push needs iOS 16.4+ **and** the installed Home Screen
+> app. Everything else works in a normal browser tab.
+
+## Security model
+
+No passwords, no accounts. Invite and session tokens are stored only as
+SHA-256 hashes; the invite travels in the URL fragment, which never reaches the
+server. Every read and write is scoped to the household resolved from the
+session cookie, writes are origin-checked and revision-guarded, and a push
+subscription dies with the session that registered it.
+
+Full detail — and how to report a vulnerability — in [SECURITY.md](SECURITY.md).
 
 ## Catalog artwork
 
-Poster metadata is imported from the public [Cinemeta](https://v3-cinemeta.strem.io) catalog. There is **no API key**: nothing to ship to the browser, nothing to configure at runtime, nothing to rotate.
+Poster metadata comes from [Cinemeta](https://v3-cinemeta.strem.io), a public
+community catalog. There is **no API key**: nothing to ship to the browser,
+configure, or rotate. Matching is deterministic (normalised title plus release
+year), every chosen URL is fetched before it is recorded, and any title without
+published artwork gets an explicit self-hosted placeholder rather than a
+missing row.
 
-```bash
-npm run images:import                              # dry run + private review file
-DATABASE_URL=<url> npm run images:import -- --apply
-```
+Caveat, accepted deliberately: Cinemeta offers no URL-stability or licensing
+guarantee, so poster URLs may change or disappear — re-run the importer if
+artwork starts 404ing. **Artwork rights belong to their respective owners.**
+This project is unaffiliated with Marvel, Disney, TMDB, or Cinemeta, and ships
+no artwork of its own beyond a placeholder.
 
-Matching is deterministic — normalised title plus the catalog year, with the media type derived from the catalog entry and a short table of reviewed aliases for season-specific and stylised titles. A candidate whose release year is two or more years away loses even on an exact title, so "Iron Man" (1989) can never stand in for "Iron Man" (2008). Every chosen poster URL is fetched before it is recorded.
+## License
 
-Every one of the 63 catalog ids gets a row. Titles with no published artwork yet keep their own row pointing at the self-hosted placeholder `/posters/fallback.svg` (`source: "fallback"`), so a missing poster is an explicit state rather than an absent mapping. Each run reports `verified`, `fallback`, and the fallback ids, and writes a private `0600` review file under `~/.hermes/secure/`.
-
-Provenance is stored per row: `source` (`cinemeta` or `fallback`), the IMDb id, the upstream metadata URL, and the verification timestamp. Artwork is served from `m.media-amazon.com` and `images.metahub.space`; those two hosts are the only remote origins the image contract and the CSP accept.
-
-Caveat, accepted deliberately for a private non-commercial tracker: Cinemeta is a community catalog with no URL-stability or licensing guarantee. Re-run the importer if artwork starts 404ing. The app credits Cinemeta and claims no relationship with TMDB or any rights holder.
-
-## Private access
-
-A private invite has this shape:
-
-```text
-https://<production-domain>/join#<single-use-invite>
-```
-
-The fragment never reaches Vercel/CDN logs or normal referrers. The SPA removes it from the address bar immediately and sends it once in a JSON `POST /api/join`. Each invite is bound to either Cengizhan or Sinem. The server atomically consumes the short-lived invite hash, carries that member identity into a separate random session, and returns a `Secure`, `HttpOnly`, `SameSite=Strict`, `__Host-` cookie. There is no client-side “who are you?” selector.
-
-Only hashes are stored in Postgres. Revoking a session does not require changing or exposing an invite secret.
-
-## Push notifications
-
-Web push is optional and requires an explicit user gesture. A plan made by one member is delivered only to subscriptions belonging to the other household member. Push endpoints are scoped in Postgres; expired (`404`/`410`) subscriptions are removed automatically. A failed notification never rolls back a saved plan.
-
-On iPhone/iPad, web push requires iOS/iPadOS 16.4+ and the installed Home Screen PWA. Calendar and progress features remain usable when permission is denied or push is unsupported.
-
-## Deploy
-
-1. Create a Neon database.
-2. Set `DATABASE_URL` locally and run `npm run db:migrate`. Migration `0001` seeds the two members **from the households that already exist**, clears pre-member invites and sessions, and adds the artwork and push tables.
-3. On a brand new database there is no household yet, so nothing was seeded — create the household and its two members: `DATABASE_URL=<url> npx tsx scripts/create-household.ts`. (Skip this when migrating an existing deployment; the migration already seeded them, and the script refuses to create a second household.)
-4. Import the private GitHub repository into Vercel.
-5. Add `DATABASE_URL`, a fixed `APP_ORIGIN`, and the three `VAPID_*` values to Vercel Production environment variables. The private VAPID key lives only there.
-6. Import artwork: `DATABASE_URL=<url> npm run images:import -- --apply`.
-7. Mint one single-use invite per member: `DATABASE_URL=<url> APP_ORIGIN=<origin> npm run invites:create`. Raw links are written only to a `0600` file under `~/.hermes/secure/` — they are never printed.
-8. Deploy, exchange a fresh invite on each approved device, and smoke-test GET/PATCH/conflict behavior.
-
-The SPA rewrite in `vercel.json` explicitly excludes `/api`, assets, and icons. Authenticated API responses are private/no-store and the app ships a restrictive CSP.
+[MIT](LICENSE). The MCU title list is factual data; the code is yours to fork.
