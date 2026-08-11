@@ -1,10 +1,19 @@
-import { ArrowLeft, Check, ChevronRight, Clock3, Play, SkipForward } from "lucide-react"
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  Clock3,
+  Play,
+  SkipForward,
+} from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { PosterCredit } from "@/components/poster-credit"
 import { getRouteItems } from "@/data/catalog"
 import type { Route } from "@/domain/catalog"
+import type { CatalogImagesMap } from "@/domain/images"
 import {
   getRouteCompletion,
   type ProgressMap,
@@ -15,23 +24,25 @@ import { catalog } from "@/data/catalog"
 interface CatalogPageProps {
   route: Route
   progress: ProgressMap
+  images: CatalogImagesMap
 }
 
-const statusMeta: Record<WatchStatus, { label: string; icon: typeof Clock3 }> = {
-  not_started: { label: "Not started", icon: Clock3 },
-  planned: { label: "Planned", icon: Clock3 },
-  watching: { label: "Watching", icon: Play },
-  watched: { label: "Watched", icon: Check },
-  skipped: { label: "Skipped", icon: SkipForward },
-}
+const statusMeta: Record<WatchStatus, { label: string; icon: typeof Clock3 }> =
+  {
+    not_started: { label: "Not started", icon: Clock3 },
+    planned: { label: "Planned", icon: Clock3 },
+    watching: { label: "Watching", icon: Play },
+    watched: { label: "Watched", icon: Check },
+    skipped: { label: "Skipped", icon: SkipForward },
+  }
 
-export function CatalogPage({ route, progress }: CatalogPageProps) {
+export function CatalogPage({ route, progress, images }: CatalogPageProps) {
   const items = getRouteItems(route)
   const completion = getRouteCompletion(catalog, progress, route)
   const title = route === "movies" ? "Movie Route" : "Series Route"
 
   return (
-    <main className="px-4 pb-28 pt-4">
+    <main className="px-4 pt-4 pb-28">
       <header className="mb-6">
         <Link
           to="/"
@@ -40,7 +51,7 @@ export function CatalogPage({ route, progress }: CatalogPageProps) {
         >
           <ArrowLeft className="size-5" aria-hidden="true" />
         </Link>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-primary uppercase">
           Independent path
         </p>
         <div className="flex items-end justify-between gap-4">
@@ -51,7 +62,10 @@ export function CatalogPage({ route, progress }: CatalogPageProps) {
             {completion.percent}%
           </span>
         </div>
-        <Progress value={completion.percent} className="mt-4 h-1.5 bg-white/8" />
+        <Progress
+          value={completion.percent}
+          className="mt-4 h-1.5 bg-white/8"
+        />
         <p className="mt-2 text-xs text-muted-foreground">
           {completion.watched} watched · {completion.total} total
         </p>
@@ -69,16 +83,34 @@ export function CatalogPage({ route, progress }: CatalogPageProps) {
                 to={`/${route}/${item.id}`}
                 className="group flex min-h-20 items-center gap-3 rounded-md border border-white/7 bg-card/55 p-3 transition-colors hover:border-primary/30 hover:bg-card/80"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-md bg-black/25 font-heading text-xs font-semibold text-muted-foreground ring-1 ring-white/6">
-                  {String(item.order).padStart(2, "0")}
-                </span>
+                {images[item.id] ? (
+                  <span className="relative h-14 w-10 shrink-0 overflow-hidden rounded-sm bg-black/25 ring-1 ring-white/8">
+                    <img
+                      src={images[item.id].imageUri}
+                      alt={`${item.title} poster`}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute right-0 bottom-0 bg-black/75 px-1 py-0.5 text-[8px] font-semibold text-white">
+                      {String(item.order).padStart(2, "0")}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="grid size-10 shrink-0 place-items-center rounded-md bg-black/25 font-heading text-xs font-semibold text-muted-foreground ring-1 ring-white/6">
+                    {String(item.order).padStart(2, "0")}
+                  </span>
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-heading text-sm font-semibold">
                     {item.title}
                   </span>
                   <span className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                     <StatusIcon
-                      className={status === "watched" ? "size-3 text-emerald-500" : "size-3"}
+                      className={
+                        status === "watched"
+                          ? "size-3 text-emerald-500"
+                          : "size-3"
+                      }
                       aria-hidden="true"
                     />
                     {label}
@@ -87,16 +119,23 @@ export function CatalogPage({ route, progress }: CatalogPageProps) {
                   </span>
                 </span>
                 {item.releaseStatus === "upcoming" ? (
-                  <Badge variant="outline" className="border-primary/25 text-[9px] uppercase text-primary">
+                  <Badge
+                    variant="outline"
+                    className="border-primary/25 text-[9px] text-primary uppercase"
+                  >
                     Soon
                   </Badge>
                 ) : null}
-                <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                <ChevronRight
+                  className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
               </Link>
             </li>
           )
         })}
       </ol>
+      <PosterCredit />
     </main>
   )
 }

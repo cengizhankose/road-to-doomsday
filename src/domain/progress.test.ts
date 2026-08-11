@@ -6,6 +6,7 @@ import {
   getSelectedRouteItem,
   normalizeScore,
   normalizeSeriesPosition,
+  shouldNotifyPlan,
   type ProgressMap,
 } from "@/domain/progress"
 
@@ -50,7 +51,7 @@ describe("progress selectors", () => {
 
   it("does not invent an automatic next item", () => {
     expect(
-      getSelectedRouteItem(items, { movies: null, series: null }, "movies"),
+      getSelectedRouteItem(items, { movies: null, series: null }, "movies")
     ).toBeUndefined()
   })
 
@@ -85,5 +86,23 @@ describe("progress selectors", () => {
       currentSeason: 1,
       currentEpisode: 1,
     })
+  })
+
+  it("notifies only when a real plan is created or changed", () => {
+    const existing = {
+      catalogId: "one",
+      status: "planned" as const,
+      plannedAt: "2026-08-14T18:00:00.000Z",
+      revision: 1,
+    }
+
+    expect(shouldNotifyPlan(undefined, existing)).toBe(true)
+    expect(shouldNotifyPlan(existing, { ...existing, note: "Bring snacks" })).toBe(false)
+    expect(
+      shouldNotifyPlan(existing, {
+        ...existing,
+        plannedAt: "2026-08-15T18:00:00.000Z",
+      }),
+    ).toBe(true)
   })
 })

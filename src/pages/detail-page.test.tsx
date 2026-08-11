@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
@@ -7,6 +7,67 @@ import { catalog } from "@/data/catalog"
 import { DetailPage } from "@/pages/detail-page"
 
 describe("DetailPage", () => {
+  it("shows the verified poster without changing the editing flow", () => {
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+
+    render(
+      <MemoryRouter>
+        <DetailPage
+          item={item}
+          image={{
+            catalogId: "iron-man",
+            imageUri: "https://m.media-amazon.com/images/M/MV5Bexample._V1_SX250.jpg",
+            source: "cinemeta",
+            sourceId: "tt0371746",
+            sourcePageUri: "https://v3-cinemeta.strem.io/meta/movie/tt0371746.json",
+            matchedTitle: "Iron Man",
+            matchedYear: 2008,
+            lastVerifiedAt: "2026-08-10T14:00:00.000Z",
+          }}
+          progress={undefined}
+          onSave={vi.fn()}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
+    )
+
+    expect(
+      screen.getByRole("img", { name: "Iron Man poster" })
+    ).toBeInTheDocument()
+  })
+
+  it("shows local plan time and saves an unambiguous UTC instant", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const plannedAt = new Date(2026, 7, 14, 21, 0).toISOString()
+    render(
+      <MemoryRouter>
+        <DetailPage
+          item={item}
+          progress={{ catalogId: item.id, status: "planned", plannedAt, revision: 1 }}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    const input = screen.getByLabelText(/planned date & time/i)
+    expect(input).toHaveValue("2026-08-14T21:00")
+    fireEvent.change(input, { target: { value: "2026-08-15T20:30" } })
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plannedAt: new Date(2026, 7, 15, 20, 30).toISOString(),
+      }),
+    )
+  })
+
   it("keeps edits local until one explicit save", async () => {
     const user = userEvent.setup()
     const save = vi.fn()
@@ -14,16 +75,23 @@ describe("DetailPage", () => {
 
     render(
       <MemoryRouter>
-        <DetailPage item={item} progress={undefined} onSave={save} saving={false} selectedNext={false} onSelectNext={vi.fn()} />
-      </MemoryRouter>,
+        <DetailPage
+          item={item}
+          progress={undefined}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
     )
 
     await user.click(screen.getByRole("button", { name: "Watched" }))
     await user.click(
       within(screen.getByRole("group", { name: /cengizhan score/i })).getByRole(
         "button",
-        { name: "8" },
-      ),
+        { name: "8" }
+      )
     )
 
     expect(save).not.toHaveBeenCalled()
@@ -36,7 +104,165 @@ describe("DetailPage", () => {
         catalogId: "iron-man",
         status: "watched",
         cengizhanScore: 8,
+      })
+    )
+  })
+
+  it("saves twice in a row without replaying a stale revision", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const first = {
+      catalogId: item.id,
+      status: "watching" as const,
+      revision: 1,
+    }
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DetailPage
+          item={item}
+          progress={first}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Watched" }))
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+    expect(save).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ status: "watched", revision: 1 }),
+    )
+
+    // The server accepted the write and the shared cache now holds revision 2.
+    const saved = { ...first, status: "watched" as const, revision: 2 }
+    rerender(
+      <MemoryRouter>
+        <DetailPage
+          item={item}
+          progress={saved}
+          onSave={save}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Skipped" }))
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ status: "skipped", revision: 2 }),
+    )
+  })
+
+  it("never overwrites another device's field that this member did not touch", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const props = {
+      item,
+      onSave: save,
+      saving: false,
+      selectedNext: false,
+      onSelectNext: vi.fn(),
+    }
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{ catalogId: item.id, status: "watching", revision: 4 }}
+        />
+      </MemoryRouter>,
+    )
+
+    // This member only ever changes the status.
+    await user.click(screen.getByRole("button", { name: "Watched" }))
+
+    // Meanwhile the other member writes a note and a plan.
+    rerender(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{
+            catalogId: item.id,
+            status: "watching",
+            note: "Sinem: bring snacks",
+            plannedAt: "2026-08-20T18:00:00.000Z",
+            revision: 5,
+          }}
+        />
+      </MemoryRouter>,
+    )
+
+    // Their values are adopted and visible, because nobody edited them here.
+    expect(screen.getByLabelText(/shared note/i)).toHaveValue(
+      "Sinem: bring snacks",
+    )
+
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "watched", // this member's deliberate edit survives
+        note: "Sinem: bring snacks", // the other member's write is not clobbered
+        plannedAt: "2026-08-20T18:00:00.000Z",
+        revision: 5,
       }),
+    )
+  })
+
+  it("keeps this member's in-flight edit when the other device changes the same field", async () => {
+    const user = userEvent.setup()
+    const save = vi.fn()
+    const item = catalog.find((entry) => entry.id === "iron-man")!
+    const props = {
+      item,
+      onSave: save,
+      saving: false,
+      selectedNext: false,
+      onSelectNext: vi.fn(),
+    }
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{ catalogId: item.id, status: "watching", revision: 4 }}
+        />
+      </MemoryRouter>,
+    )
+
+    await user.type(screen.getByLabelText(/shared note/i), "Bring snacks")
+
+    rerender(
+      <MemoryRouter>
+        <DetailPage
+          {...props}
+          progress={{
+            catalogId: item.id,
+            status: "watching",
+            note: "Written from the other device",
+            revision: 5,
+          }}
+        />
+      </MemoryRouter>,
+    )
+
+    // A field this member is actively editing is not yanked out from under them.
+    expect(screen.getByLabelText(/shared note/i)).toHaveValue("Bring snacks")
+
+    await user.click(screen.getByRole("button", { name: /save progress/i }))
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ note: "Bring snacks", revision: 5 }),
     )
   })
 
@@ -45,16 +271,30 @@ describe("DetailPage", () => {
     const show = catalog.find((entry) => entry.id === "loki")!
     const { rerender } = render(
       <MemoryRouter>
-        <DetailPage item={movie} progress={undefined} onSave={vi.fn()} saving={false} selectedNext={false} onSelectNext={vi.fn()} />
-      </MemoryRouter>,
+        <DetailPage
+          item={movie}
+          progress={undefined}
+          onSave={vi.fn()}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
     )
 
     expect(screen.queryByLabelText(/season/i)).not.toBeInTheDocument()
 
     rerender(
       <MemoryRouter>
-        <DetailPage item={show} progress={undefined} onSave={vi.fn()} saving={false} selectedNext={false} onSelectNext={vi.fn()} />
-      </MemoryRouter>,
+        <DetailPage
+          item={show}
+          progress={undefined}
+          onSave={vi.fn()}
+          saving={false}
+          selectedNext={false}
+          onSelectNext={vi.fn()}
+        />
+      </MemoryRouter>
     )
 
     expect(screen.getByLabelText(/season/i)).toBeInTheDocument()
@@ -76,7 +316,7 @@ describe("DetailPage", () => {
           selectedNext={false}
           onSelectNext={selectNext}
         />
-      </MemoryRouter>,
+      </MemoryRouter>
     )
 
     await user.click(screen.getByRole("button", { name: /set as next/i }))

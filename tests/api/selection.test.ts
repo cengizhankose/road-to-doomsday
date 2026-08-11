@@ -3,15 +3,34 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { createSelectionHandler } from "../../api/selection"
 import type { VercelRequest, VercelResponse } from "../../api/_lib/types"
 
+const session = {
+  householdId: "household-rtd",
+  memberId: "member-cengizhan",
+  memberName: "Cengizhan",
+  sessionHash: "session-hash",
+}
+
 function response() {
   let statusCode = 200
   let body: unknown
   const res: VercelResponse = {
-    setHeader() { return this },
-    status(code) { statusCode = code; return this },
-    json(value) { body = value; return this },
-    redirect() { return this },
-    end() { return this },
+    setHeader() {
+      return this
+    },
+    status(code) {
+      statusCode = code
+      return this
+    },
+    json(value) {
+      body = value
+      return this
+    },
+    redirect() {
+      return this
+    },
+    end() {
+      return this
+    },
   }
   return { res, status: () => statusCode, body: () => body }
 }
@@ -33,8 +52,10 @@ describe("PATCH /api/selection", () => {
 
   it("upserts the manual route choice inside the session household", async () => {
     vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
-    const authorize = vi.fn().mockResolvedValue("household-rtd")
-    const save = vi.fn().mockResolvedValue({ route: "movies", catalogId: "iron-man" })
+    const authorize = vi.fn().mockResolvedValue(session)
+    const save = vi
+      .fn()
+      .mockResolvedValue({ route: "movies", catalogId: "iron-man" })
     const handler = createSelectionHandler({ authorize, save })
     const result = response()
 
@@ -52,7 +73,7 @@ describe("PATCH /api/selection", () => {
     vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
     const save = vi.fn()
     const handler = createSelectionHandler({
-      authorize: vi.fn().mockResolvedValue("household-rtd"),
+      authorize: vi.fn().mockResolvedValue(session),
       save,
     })
     const result = response()

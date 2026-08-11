@@ -8,6 +8,13 @@
       "when": 1786364359048,
       "tag": "0000_lethal_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786373420292,
+      "tag": "0001_strong_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

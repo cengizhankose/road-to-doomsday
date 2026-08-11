@@ -12,6 +12,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["api/**/*.ts", "src/api/**/*.ts", "src/data/**/*.ts", "src/db/**/*.ts", "src/domain/**/*.ts"],
+  "include": ["api/**/*.ts", "scripts/**/*.ts", "src/api/**/*.ts", "src/data/**/*.ts", "src/db/**/*.ts", "src/domain/**/*.ts"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "api/**/*.test.ts"]
 }

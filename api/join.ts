@@ -13,7 +13,9 @@ const inviteSchema = z.object({ token: z.string().min(22).max(256) }).strict()
 
 type ExchangeInvite = (inviteToken: string) => Promise<string | null>
 
-async function exchangeInvite(inviteToken: string): Promise<string | null> {
+export async function exchangeInvite(
+  inviteToken: string
+): Promise<string | null> {
   const databaseUrl = process.env.DATABASE_URL
   if (!databaseUrl) throw new Error("DATABASE_URL is not configured")
 
@@ -26,10 +28,10 @@ async function exchangeInvite(inviteToken: string): Promise<string | null> {
       delete from invites
       where token_hash = ${inviteHash}
         and expires_at > now()
-      returning household_id
+      returning household_id, member_id
     )
-    insert into sessions (session_hash, household_id, expires_at)
-    select ${sessionHash}, household_id, now() + interval '30 days'
+    insert into sessions (session_hash, household_id, member_id, expires_at)
+    select ${sessionHash}, household_id, member_id, now() + interval '30 days'
     from consumed
     returning session_hash
   `
@@ -53,12 +55,18 @@ export function createJoinHandler(exchange: ExchangeInvite = exchangeInvite) {
     }
 
     const contentType = req.headers["content-type"]
-    if (typeof contentType !== "string" || !contentType.toLowerCase().startsWith("application/json")) {
+    if (
+      typeof contentType !== "string" ||
+      !contentType.toLowerCase().startsWith("application/json")
+    ) {
       return res.status(415).json({ error: "JSON required" })
     }
 
     const declaredLength = Number(req.headers["content-length"] ?? 0)
-    const actualLength = Buffer.byteLength(JSON.stringify(req.body ?? null), "utf8")
+    const actualLength = Buffer.byteLength(
+      JSON.stringify(req.body ?? null),
+      "utf8"
+    )
     if (declaredLength > 10_000 || actualLength > 10_000) {
       return res.status(413).json({ error: "Payload too large" })
     }

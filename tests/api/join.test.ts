@@ -55,21 +55,46 @@ describe("POST /api/join", () => {
 
     await handler(request(), result.res)
 
-    expect(exchangeInvite).toHaveBeenCalledWith("0123456789abcdef0123456789abcdef")
+    expect(exchangeInvite).toHaveBeenCalledWith(
+      "0123456789abcdef0123456789abcdef"
+    )
     expect(result.getStatus()).toBe(204)
     expect(result.headers.get("Set-Cookie")).toContain(
-      "__Host-rtd_session=opaque-session-token",
+      "__Host-rtd_session=opaque-session-token"
     )
     expect(result.headers.get("Set-Cookie")).not.toContain(
-      "0123456789abcdef0123456789abcdef",
+      "0123456789abcdef0123456789abcdef"
     )
   })
 
   it.each([
     ["wrong method", request({ method: "GET" }), 405],
-    ["missing origin", request({ headers: { "content-type": "application/json" } }), 403],
-    ["wrong content type", request({ headers: { origin: "https://road-to-doomsday.vercel.app", "content-type": "text/plain" } }), 415],
-    ["oversized body", request({ headers: { origin: "https://road-to-doomsday.vercel.app", "content-type": "application/json", "content-length": "10001" } }), 413],
+    [
+      "missing origin",
+      request({ headers: { "content-type": "application/json" } }),
+      403,
+    ],
+    [
+      "wrong content type",
+      request({
+        headers: {
+          origin: "https://road-to-doomsday.vercel.app",
+          "content-type": "text/plain",
+        },
+      }),
+      415,
+    ],
+    [
+      "oversized body",
+      request({
+        headers: {
+          origin: "https://road-to-doomsday.vercel.app",
+          "content-type": "application/json",
+          "content-length": "10001",
+        },
+      }),
+      413,
+    ],
     ["short token", request({ body: { token: "short" } }), 400],
   ])("rejects %s", async (_name, req, status) => {
     vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
