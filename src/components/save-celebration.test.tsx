@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react"
+import { act, cleanup, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { SaveCelebration } from "@/components/save-celebration"
@@ -28,7 +28,17 @@ describe("SaveCelebration", () => {
   })
 
   afterEach(() => {
-    vi.runOnlyPendingTimers()
+    // Unmount first. Vitest runs `afterEach` hooks in reverse registration
+    // order, so Testing Library's auto-cleanup — registered when it was
+    // imported — would otherwise run *after* this hook. Flushing timers while
+    // the component is still mounted fires the dismiss callbacks as unactioned
+    // state updates, which is what produces "not wrapped in act(...)".
+    cleanup()
+    // Anything still queued after unmount is drained inside `act` so React can
+    // process the resulting render, rather than warning about it.
+    act(() => {
+      vi.runOnlyPendingTimers()
+    })
     vi.useRealTimers()
     vi.unstubAllGlobals()
   })
