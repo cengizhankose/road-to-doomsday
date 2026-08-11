@@ -87,6 +87,21 @@ function saveLocalSelection(selection: Selection): Selection {
   return selection
 }
 
+/**
+ * A record to write, plus whether landing it owes the member a confirmation.
+ *
+ * The confirmation belongs to the control that was pressed, not to the endpoint
+ * the write is routed to. "Save progress" on a detail page is an explicit save
+ * whether or not a changed plan sends it down `schedule`, and the home
+ * calendar's own Schedule button stays quiet for the same reason in reverse.
+ * Carrying the intent in the mutation variables is what keeps the two
+ * independent, and means a confirmation cannot fire without an accepted write.
+ */
+export interface SaveIntent {
+  record: ProgressRecord
+  confirm: boolean
+}
+
 export function useSharedProgress() {
   const queryClient = useQueryClient()
   // Counts accepted explicit saves. A count rather than a flag: the UI reacts
@@ -111,6 +126,13 @@ export function useSharedProgress() {
     const current = conflictRecord(error)
     if (current) cacheRecord(current)
   }
+
+  // Shared by both write mutations, so which endpoint carried the record never
+  // decides whether the member sees it land — only the caller's intent does.
+  const commit = (saved: ProgressRecord, { confirm }: SaveIntent) => {
+    cacheRecord(saved)
+    if (confirm) setSaveSuccessToken((count) => count + 1)
+  }
   const query = useQuery({
     queryKey,
     queryFn: () =>
@@ -119,24 +141,20 @@ export function useSharedProgress() {
         : progressClient.getAll(),
   })
   const progressMutation = useMutation({
-    mutationFn: (record: ProgressRecord) =>
+    mutationFn: ({ record }: SaveIntent) =>
       import.meta.env.DEV
         ? Promise.resolve(saveLocalProgress(record))
         : progressClient.save(record),
-    // Only this mutation advances the token. A schedule is its own action with
-    // its own feedback, and a refetch is not a save at all.
-    onSuccess: (saved) => {
-      cacheRecord(saved)
-      setSaveSuccessToken((count) => count + 1)
-    },
+    onSuccess: commit,
     onError: cacheConflict,
   })
   const scheduleMutation = useMutation({
-    mutationFn: (record: ProgressRecord) =>
+    // Same write, but through the endpoint that also wakes the other member.
+    mutationFn: ({ record }: SaveIntent) =>
       import.meta.env.DEV
         ? Promise.resolve(saveLocalProgress(record))
         : progressClient.schedule(record),
-    onSuccess: cacheRecord,
+    onSuccess: commit,
     onError: cacheConflict,
   })
   const selectionMutation = useMutation({
@@ -171,7 +189,10 @@ export function useSharedProgress() {
     // rejected promise nobody awaits becomes an unhandled rejection instead of
     // the inline notice these failures are supposed to produce.
     save: progressMutation.mutate,
-    /** Advances once per accepted explicit save; drives the save confirmation. */
+    /**
+     * Advances once per accepted write the caller asked to confirm; drives the
+     * save confirmation.
+     */
     saveSuccessToken,
     schedule: scheduleMutation.mutate,
     selectNext: selectionMutation.mutate,

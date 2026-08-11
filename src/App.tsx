@@ -47,11 +47,15 @@ function DetailRoute({
       image={shared.images[item.id]}
       progress={shared.progress[item.id]}
       members={shared.members}
-      onSave={(next) =>
-        shouldNotifyPlan(shared.progress[item.id], next)
-          ? shared.schedule(next)
-          : shared.save(next)
-      }
+      onSave={(next) => {
+        // A new or changed plan is routed through the endpoint that wakes the
+        // other member. That is a delivery detail: the member pressed "Save
+        // progress" either way, so either way the save is confirmed on screen.
+        const intent = { record: next, confirm: true }
+        return shouldNotifyPlan(shared.progress[item.id], next)
+          ? shared.schedule(intent)
+          : shared.save(intent)
+      }}
       onSelectNext={(selected) =>
         shared.selectNext({ route: selected.route, catalogId: selected.id })
       }
@@ -91,12 +95,18 @@ function AppRoutes() {
                 onRefresh={() => void shared.refresh()}
                 refreshing={shared.refreshing}
                 // Same gate the detail page uses: only a new or changed plan
-                // is worth waking the other member for.
-                onSchedule={(record) =>
-                  shouldNotifyPlan(shared.progress[record.catalogId], record)
-                    ? shared.schedule(record)
-                    : shared.save(record)
-                }
+                // is worth waking the other member for. The calendar shows the
+                // new plan in place as its own feedback, so it asks for no
+                // confirmation and stays silent.
+                onSchedule={(record) => {
+                  const intent = { record, confirm: false }
+                  return shouldNotifyPlan(
+                    shared.progress[record.catalogId],
+                    record
+                  )
+                    ? shared.schedule(intent)
+                    : shared.save(intent)
+                }}
                 scheduling={shared.saving}
                 notification={{
                   memberName: shared.member.name,

@@ -6,9 +6,11 @@ import { App } from "./App"
 import { queryClient } from "./lib/query-client"
 
 /**
- * The celebration is deliberately narrow: it belongs to an explicit "Save
- * progress" that the server accepted, and to nothing else. A refresh, a
- * calendar schedule, or a rejected save must stay silent.
+ * The celebration belongs to the control the member pressed, not to the
+ * endpoint that ends up carrying the write. "Save progress" on a detail page is
+ * an explicit save even when a changed plan routes it through the notifying
+ * mutation. A refresh, the home calendar's own Schedule button, and a rejected
+ * save all stay silent.
  */
 const sharedProgressPayload = {
   items: [],
@@ -128,14 +130,14 @@ describe("save success feedback", () => {
     expect(screen.queryByText(/progress saved/i)).not.toBeInTheDocument()
   })
 
-  it("stays silent for a calendar schedule, which is a different action", async () => {
+  it("celebrates a planned datetime saved from the detail page, once", async () => {
     const user = userEvent.setup()
     window.history.replaceState(null, "", "/movies/iron-man")
-    const calls: Array<string | undefined> = []
+    const notifyHeaders: Array<string | undefined> = []
     vi.spyOn(globalThis, "fetch").mockImplementation(
       async (_input, init?: RequestInit) => {
         if (init?.method === "PATCH") {
-          calls.push(
+          notifyHeaders.push(
             (init.headers as Record<string, string>)?.["X-RTD-Notify-Plan"]
           )
           return savedResponse({
@@ -150,14 +152,52 @@ describe("save success feedback", () => {
     render(<App />)
     await screen.findByRole("heading", { name: "Iron Man" })
 
-    // Choosing "Planned" with a date routes the save through `schedule`.
+    // A new plan routes the save through `schedule`, but the member still
+    // pressed "Save progress" — the confirmation is owed either way.
     await user.click(screen.getByRole("button", { name: "Planned" }))
     const when = screen.getByLabelText(/planned date & time/i)
     await user.clear(when)
     await user.type(when, "2026-09-01T21:00")
     await user.click(screen.getByRole("button", { name: /save progress/i }))
 
-    await waitFor(() => expect(calls).toContain("1"))
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      /progress saved/i
+    )
+    expect(screen.getAllByTestId("confetti")).toHaveLength(1)
+    expect(screen.getAllByRole("status")).toHaveLength(1)
+
+    // The plan change must still be the kind of write that wakes the other
+    // member, and one press must remain one write.
+    expect(notifyHeaders).toEqual(["1"])
+  })
+
+  it("stays silent for the home calendar's own Schedule button", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(null, "", "/")
+    const notifyHeaders: Array<string | undefined> = []
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_input, init?: RequestInit) => {
+        if (init?.method === "PATCH") {
+          notifyHeaders.push(
+            (init.headers as Record<string, string>)?.["X-RTD-Notify-Plan"]
+          )
+          return savedResponse({
+            status: "planned",
+            plannedAt: "2026-09-01T18:00:00.000Z",
+          })
+        }
+        return progressResponse()
+      }
+    )
+
+    render(<App />)
+    await screen.findByRole("heading", { name: /road to/i })
+
+    await user.click(screen.getByRole("button", { name: /^schedule$/i }))
+
+    // The write still happens, and still notifies — only the confirmation is
+    // withheld, because this control has its own feedback.
+    await waitFor(() => expect(notifyHeaders).toEqual(["1"]))
     expect(screen.queryByTestId("confetti")).not.toBeInTheDocument()
     expect(screen.queryByText(/progress saved/i)).not.toBeInTheDocument()
   })
