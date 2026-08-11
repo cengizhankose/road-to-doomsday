@@ -7,7 +7,7 @@ function request(overrides: Partial<VercelRequest> = {}): VercelRequest {
   return {
     method: "POST",
     headers: {
-      origin: "https://road-to-doomsday.vercel.app",
+      origin: "https://road-to-doomsday.example",
       "content-type": "application/json",
       "content-length": "60",
     },
@@ -48,7 +48,7 @@ describe("POST /api/join", () => {
   afterEach(() => vi.unstubAllEnvs())
 
   it("exchanges a single-use invite for an independent strict session cookie", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const exchangeInvite = vi.fn().mockResolvedValue("opaque-session-token")
     const handler = createJoinHandler(exchangeInvite)
     const result = response()
@@ -78,7 +78,7 @@ describe("POST /api/join", () => {
       "wrong content type",
       request({
         headers: {
-          origin: "https://road-to-doomsday.vercel.app",
+          origin: "https://road-to-doomsday.example",
           "content-type": "text/plain",
         },
       }),
@@ -88,7 +88,7 @@ describe("POST /api/join", () => {
       "oversized body",
       request({
         headers: {
-          origin: "https://road-to-doomsday.vercel.app",
+          origin: "https://road-to-doomsday.example",
           "content-type": "application/json",
           "content-length": "10001",
         },
@@ -97,7 +97,7 @@ describe("POST /api/join", () => {
     ],
     ["short token", request({ body: { token: "short" } }), 400],
   ])("rejects %s", async (_name, req, status) => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const exchangeInvite = vi.fn()
     const handler = createJoinHandler(exchangeInvite)
     const result = response()

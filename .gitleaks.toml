@@ -1,0 +1,21 @@
+# Secret-scanning config. Run with:  gitleaks git --log-opts="--all" .
+#
+# There is exactly one allowlisted pattern, and it is not a credential.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(?:key|api|token|secret|client|passwd|password|auth|access)(?:[0-9a-z\-_\t .]{0,20})(?:[\s|']|[\s|"]){0,3}(?:=|>|:{1,3}=|\|\||:|<=|=>|:=|\?=|,)(?:'|\"|\s|=|\x60){0,5}([0-9a-z\-_.=]{10,150})(?:['|\"|\n|\r|\s|\x60|;|\\]|$)'''
+keywords = ["key", "api", "token", "secret", "client", "passwd", "password", "auth", "access"]
+
+  [rules.allowlist]
+  regexTarget = "match"
+  # `0123456789abcdef0123456789abcdef` is a hand-typed placeholder invite token
+  # used by the API tests. It is 32 counting digits, carries no entropy, and
+  # never existed in any database. Real invite tokens are 32 random bytes,
+  # exist only in a gitignored 0600 file, and reach Postgres only as a
+  # SHA-256 hash — see SECURITY.md.
+  regexes = ['''0123456789abcdef0123456789abcdef''']

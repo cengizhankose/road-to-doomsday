@@ -42,7 +42,7 @@ function request(method: string, body?: unknown): VercelRequest {
   return {
     method,
     headers: {
-      origin: "https://road-to-doomsday.vercel.app",
+      origin: "https://road-to-doomsday.example",
       "content-type": "application/json",
     },
     query: {},
@@ -138,7 +138,7 @@ describe("/api/progress household scope", () => {
   })
 
   it("saves atomically inside the session household", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const authorize = vi.fn().mockResolvedValue(session)
     const list = vi.fn()
     const save = vi.fn().mockResolvedValue({ saved: record, current: null })
@@ -161,7 +161,7 @@ describe("/api/progress household scope", () => {
   })
 
   it("notifies the other member after a successful calendar plan", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const planned: ProgressRecord = {
       ...record,
       status: "planned",
@@ -205,7 +205,7 @@ describe("/api/progress household scope", () => {
     ["a datetime in the watchedOn date column", { watchedOn: "2026-08-14T18:00:00.000Z" }],
     ["an impossible watchedOn", { watchedOn: "2026-02-31" }],
   ])("rejects %s with 400 instead of reaching storage", async (_name, patch) => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn()
     const handler = createProgressHandler({
       authorize: vi.fn().mockResolvedValue(session),
@@ -223,7 +223,7 @@ describe("/api/progress household scope", () => {
   })
 
   it("accepts a timezone-aware plan expressed with a UTC offset", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const planned = {
       ...record,
       status: "planned" as const,
@@ -272,7 +272,7 @@ describe("/api/progress household scope", () => {
   })
 
   it("answers a stale revision with 409 and the record that actually won", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const winner: ProgressRecord = {
       ...record,
       note: "Sam: bring snacks",

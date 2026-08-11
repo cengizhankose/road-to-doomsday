@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Everything `.gitignore` covers: build output, generated review files, and
+  // local operational scratch scripts are not part of the reviewed source.
+  globalIgnores(['dist', '.cache', '.secrets', '.tmp-ops']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -39,7 +39,7 @@ function request(): VercelRequest {
   return {
     method: "PATCH",
     headers: {
-      origin: "https://road-to-doomsday.vercel.app",
+      origin: "https://road-to-doomsday.example",
       "content-type": "application/json",
     },
     query: {},
@@ -51,7 +51,7 @@ describe("PATCH /api/selection", () => {
   afterEach(() => vi.unstubAllEnvs())
 
   it("upserts the manual route choice inside the session household", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const authorize = vi.fn().mockResolvedValue(session)
     const save = vi
       .fn()
@@ -70,7 +70,7 @@ describe("PATCH /api/selection", () => {
   })
 
   it("rejects route mismatches before touching storage", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn()
     const handler = createSelectionHandler({
       authorize: vi.fn().mockResolvedValue(session),

@@ -72,17 +72,17 @@ describe("capability link auth", () => {
   })
 
   it("accepts only the fixed configured origin", () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
 
     expect(
       hasAllowedOrigin(
-        request({ origin: "https://road-to-doomsday.vercel.app" }),
+        request({ origin: "https://road-to-doomsday.example" }),
       ),
     ).toBe(true)
     expect(
       hasAllowedOrigin(
         request({
-          host: "road-to-doomsday.vercel.app",
+          host: "road-to-doomsday.example",
           origin: "https://evil.example",
           "x-forwarded-proto": "https",
         }),

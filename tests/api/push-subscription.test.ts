@@ -13,7 +13,7 @@ const session = {
 }
 
 function request(
-  origin = "https://road-to-doomsday.vercel.app",
+  origin = "https://road-to-doomsday.example",
   endpoint = "https://web.push.apple.com/subscription/1"
 ) {
   return {
@@ -52,7 +52,7 @@ function response() {
 
 describe("/api/push-subscription", () => {
   it("stores the subscription under the member resolved from the magic-link session", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn().mockResolvedValue(undefined)
     const handler = createPushSubscriptionHandler({
       authorize: vi.fn().mockResolvedValue(session),
@@ -86,7 +86,7 @@ describe("/api/push-subscription", () => {
   })
 
   it("rejects cross-origin subscription attempts", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn()
     const handler = createPushSubscriptionHandler({
       authorize: vi.fn().mockResolvedValue(session),
@@ -108,7 +108,7 @@ describe("/api/push-subscription", () => {
     ["Mozilla apex", "https://push.services.mozilla.com/wpush/v2/abc"],
     ["Windows Notification Service", "https://db5p.notify.windows.com/w/?token=abc"],
   ])("stores a %s endpoint", async (_name, endpoint) => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn().mockResolvedValue(undefined)
     const handler = createPushSubscriptionHandler({
       authorize: vi.fn().mockResolvedValue(session),
@@ -117,7 +117,7 @@ describe("/api/push-subscription", () => {
     const result = response()
 
     await handler(
-      request("https://road-to-doomsday.vercel.app", endpoint),
+      request("https://road-to-doomsday.example", endpoint),
       result.res
     )
 
@@ -147,7 +147,7 @@ describe("/api/push-subscription", () => {
     ["a bare token", "not-a-url-at-all"],
     ["an empty endpoint", ""],
   ])("rejects %s before storing anything", async (_name, endpoint) => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn()
     const handler = createPushSubscriptionHandler({
       authorize: vi.fn().mockResolvedValue(session),
@@ -156,7 +156,7 @@ describe("/api/push-subscription", () => {
     const result = response()
 
     await handler(
-      request("https://road-to-doomsday.vercel.app", endpoint),
+      request("https://road-to-doomsday.example", endpoint),
       result.res
     )
 
@@ -228,7 +228,7 @@ describe("/api/push-subscription", () => {
   })
 
   it("rejects a non-string endpoint without throwing", async () => {
-    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.vercel.app")
+    vi.stubEnv("APP_ORIGIN", "https://road-to-doomsday.example")
     const save = vi.fn()
     const handler = createPushSubscriptionHandler({
       authorize: vi.fn().mockResolvedValue(session),

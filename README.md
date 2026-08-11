@@ -5,9 +5,9 @@ catalog toward *Avengers: Doomsday* — movies and series as two independent
 routes, one shared plan, no accounts.
 
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="Home screen showing both route progress rings and the shared calendar" width="30%">
-  <img src="docs/screenshots/catalog.png" alt="Movies catalog with per-title watch status" width="30%">
-  <img src="docs/screenshots/detail.png" alt="Title detail page with both members' scores and a planned date" width="30%">
+  <img src="docs/screenshots/home.png" alt="Home screen with a progress ring per route and the next pick for each" width="30%">
+  <img src="docs/screenshots/catalog.png" alt="Movie route catalog listing each title with its watch status" width="30%">
+  <img src="docs/screenshots/detail.png" alt="Title detail page with a status picker and a score from each member" width="30%">
 </p>
 
 ## Features
