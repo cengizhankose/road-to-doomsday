@@ -133,3 +133,17 @@
     @apply font-sans;
     }
 }
+/* Save-confirmation burst. Transform/opacity only, so it composites on the GPU
+   and never reflows the page under it. Honouring reduced motion is handled in
+   `save-celebration.tsx`, which simply does not mount the pieces. */
+@keyframes rtd-confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--rtd-confetti-drift, 0), 88vh, 0)
+      rotate(var(--rtd-confetti-spin, 180deg));
+  }
+}

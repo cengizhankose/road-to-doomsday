@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 
 import type {
   HouseholdMember,
@@ -88,6 +89,10 @@ function saveLocalSelection(selection: Selection): Selection {
 
 export function useSharedProgress() {
   const queryClient = useQueryClient()
+  // Counts accepted explicit saves. A count rather than a flag: the UI reacts
+  // to it changing, so two saves in a row are two distinct confirmations and a
+  // re-render is none.
+  const [saveSuccessToken, setSaveSuccessToken] = useState(0)
 
   const cacheRecord = (saved: ProgressRecord) => {
     queryClient.setQueryData<SharedProgressState>(
@@ -118,7 +123,12 @@ export function useSharedProgress() {
       import.meta.env.DEV
         ? Promise.resolve(saveLocalProgress(record))
         : progressClient.save(record),
-    onSuccess: cacheRecord,
+    // Only this mutation advances the token. A schedule is its own action with
+    // its own feedback, and a refetch is not a save at all.
+    onSuccess: (saved) => {
+      cacheRecord(saved)
+      setSaveSuccessToken((count) => count + 1)
+    },
     onError: cacheConflict,
   })
   const scheduleMutation = useMutation({
@@ -161,6 +171,8 @@ export function useSharedProgress() {
     // rejected promise nobody awaits becomes an unhandled rejection instead of
     // the inline notice these failures are supposed to produce.
     save: progressMutation.mutate,
+    /** Advances once per accepted explicit save; drives the save confirmation. */
+    saveSuccessToken,
     schedule: scheduleMutation.mutate,
     selectNext: selectionMutation.mutate,
     saving:

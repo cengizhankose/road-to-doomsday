@@ -10,6 +10,7 @@ import {
 import { AppShell } from "@/components/app-shell"
 import { ActionErrorNotice } from "@/components/action-error-notice"
 import { PrivateAccessGate } from "@/components/private-access-gate"
+import { SaveCelebration } from "@/components/save-celebration"
 import { catalog } from "@/data/catalog"
 import { shouldNotifyPlan } from "@/domain/progress"
 import { useSharedProgress } from "@/hooks/use-shared-progress"
@@ -71,6 +72,7 @@ function AppRoutes() {
   return (
     <PrivateAccessGate loading={shared.loading} error={shared.error}>
       <AppShell>
+        <SaveCelebration token={shared.saveSuccessToken} />
         <ActionErrorNotice
           error={shared.actionError}
           onRetry={() => {
