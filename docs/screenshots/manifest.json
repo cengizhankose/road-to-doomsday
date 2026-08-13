@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "inputsHash": "7c8f0e87381bba4bf4425f2f361d6fa448072bd1c8c6a23b06acdf0e89ea3a2c",
+  "inputs": {
+    "scripts/screenshots/fixtures.ts": "88b347ce85d2502ceb944fc84ceb2677012a1fe73a34f3030cee2e1546c52365",
+    "scripts/screenshots/poster.ts": "7756da55a7d3bbccae705554f76aec67e304dc7617d6d7b0ec0ad28c04196043",
+    "src/data/catalog.ts": "8728345446003823cb41c79a3d68eefe29a16a3b976175f946e08ad9f0bd85df",
+    "src/domain/catalog.ts": "b5f4670c3baf0b09f0b1799ebb15fbe89b4322f04d74788bb4cdb393672f7545",
+    "src/domain/progress.ts": "423333be147b11023fdd1ac984da46911debcea4dc17ecde798ba8a625950d20",
+    "src/domain/images.ts": "fe04dae7dca06277b19ea719ee1b6642e51948b93f053036928469bf37ade2bb",
+    "src/pages/home-page.tsx": "df93016f1212cd90d70a4b2f09c908a633acd2a62f4c52665880194e61367e32",
+    "src/pages/catalog-page.tsx": "37c5bdd29814a73f9e8aa92febb4bf15d868d590fd65c0a74252d603c3302a8b",
+    "src/pages/detail-page.tsx": "75c901dc42f47189e5b15b4933d7003e21d9c850ee5b08e6311e2f2568bca4b4",
+    "src/components/app-shell.tsx": "2f2f72dd65dd5da698d94a30282c89eb736a1bd54e90f50a4be678fd082b5ca3",
+    "src/components/bottom-nav.tsx": "f030ad6545fc5661dbdfcb461f70fdb21afb566d6b84e141e386bd1c827d2749",
+    "src/components/route-card.tsx": "0b666a573d418206ff897de0628eeea34f6f964ca7148ba6209e15d6b63d9ee6",
+    "src/components/progress-ring.tsx": "7991496bb298d8a3b15abdc81407f8dc1cacf6781d4f5688ba21607d9641625e",
+    "src/components/mini-calendar.tsx": "5b78a8d0afb3f5a2f01361f8efbc610640127846c343dc62ecd8a6c3759b212e",
+    "src/components/notification-prompt.tsx": "5c1e207d5d0571f54e256573e35a3d7689d9223bb0cdf71feca0d7a26796d8cc",
+    "src/components/poster-credit.tsx": "a764de93f7bb23b72bf252c329dbcd30408a82579c69095ddc8f885f76c95ce0",
+    "src/components/save-celebration.tsx": "98da2cf98396323d7a8af3f48b30aa952df1206eaebb2212451b2bb4f4373b52",
+    "src/components/action-error-notice.tsx": "3512832aa555a337cdf2111d2b4e58dd66716f12d637f9708633bdd841c2d8f6",
+    "src/components/private-access-gate.tsx": "354216e6276bc9094b5c6d315c89a8b234b3656b79b1679a5818ef7b83a6322d",
+    "src/index.css": "6239b3e9833350dc956d02cebf30114807e6069dbccbcb137b882d6db04962c0",
+    "public/posters/fallback.svg": "709df72449010b44f66cbeb29757cd9e8be3b6f5acede9837c7fccbc868b8dc1"
+  },
+  "screenshots": {
+    "home": {
+      "width": 448,
+      "height": 857
+    },
+    "catalog": {
+      "width": 448,
+      "height": 857
+    },
+    "detail": {
+      "width": 448,
+      "height": 857
+    }
+  }
+}

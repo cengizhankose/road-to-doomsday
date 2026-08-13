@@ -4,6 +4,10 @@ A mobile-first PWA where two people track their way through the 63-title MCU
 catalog toward *Avengers: Doomsday* — movies and series as two independent
 routes, one shared plan, no accounts.
 
+**Live app:** <https://road-to-doomsday-ten.vercel.app> (the tracker itself is
+private per household — the link lands on the invite-required screen unless you
+open it with a household member's single-use link).
+
 <p align="center">
   <img src="docs/screenshots/home.png" alt="Home screen with a progress ring per route and the next pick for each" width="30%">
   <img src="docs/screenshots/catalog.png" alt="Movie route catalog listing each title with its watch status" width="30%">
@@ -54,6 +58,24 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+### README screenshots
+
+The three images embedded above are rendered by Playwright against `npm run
+dev`, seeded from `scripts/screenshots/fixtures.ts` so the composition is
+reproducible on any machine. Poster requests are answered by a local generator
+— nothing outside the repo is fetched.
+
+```bash
+npm run screenshots         # regenerate all three PNGs and the manifest
+npm run screenshots:verify  # CI-cheap check: manifest hashes still match the source
+```
+
+Regenerate whenever a page, the app shell, the catalog, or the fixture changes.
+The verify step compares a hash of every input listed in
+`scripts/screenshots/manifest.ts` against the committed
+`docs/screenshots/manifest.json`, so drift is caught without a byte-for-byte
+PNG compare that would flake on font rendering differences.
 
 ## Deploy your own
 
