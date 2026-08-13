@@ -378,4 +378,25 @@ describe("/api/progress household scope", () => {
     expect(list).not.toHaveBeenCalled()
     expect(save).not.toHaveBeenCalled()
   })
+
+  it("refuses an anonymous PATCH even with a fully valid payload", async () => {
+    // The client-side demo mode swallows mutations locally, but a mis-wired
+    // or forged request must still bounce at the API. If this test starts
+    // passing at any status other than 401, the auth boundary is broken and
+    // demo edits could reach a real household.
+    const save = vi.fn()
+    const handler = createProgressHandler({
+      authorize: vi.fn().mockResolvedValue(null),
+      list: vi.fn(),
+      getSelections: vi.fn(),
+      listMembers: vi.fn().mockResolvedValue([]),
+      save,
+    })
+    const result = response()
+
+    await handler(request("PATCH", record), result.res)
+
+    expect(result.status()).toBe(401)
+    expect(save).not.toHaveBeenCalled()
+  })
 })

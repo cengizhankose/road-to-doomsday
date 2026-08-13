@@ -162,7 +162,12 @@ describe("App mutation failures", () => {
     })
   })
 
-  it("locks the tracker only when the initial load is unauthorized", async () => {
+  it("falls through to the browser-local demo when the initial load is unauthorized", async () => {
+    // The stable public URL returns 401 for anyone who has not opened a
+    // household invite. A locked door in that case reads as "broken app" to a
+    // curious visitor, so the client falls through to the read-only demo —
+    // still with no ability to touch real household state, because the API
+    // rejects every mutation without a session.
     window.history.replaceState(null, "", "/movies/iron-man")
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ error: "Private link required" }), {
@@ -173,11 +178,14 @@ describe("App mutation failures", () => {
 
     render(<App />)
 
+    // Demo mode renders Iron Man as watched with both members' scores from the
+    // seed, and the banner tells the visitor their changes stay local.
     expect(
-      await screen.findByRole("heading", { name: /private link required/i })
+      await screen.findByRole("heading", { name: "Iron Man" })
     ).toBeInTheDocument()
+    expect(screen.getByRole("status")).toHaveTextContent(/demo/i)
     expect(
-      screen.queryByRole("button", { name: /save progress/i })
+      screen.queryByRole("heading", { name: /private link required/i })
     ).not.toBeInTheDocument()
   })
 })

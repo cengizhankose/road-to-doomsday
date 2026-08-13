@@ -9,6 +9,7 @@ import {
 
 import { AppShell } from "@/components/app-shell"
 import { ActionErrorNotice } from "@/components/action-error-notice"
+import { DemoBanner } from "@/components/demo-banner"
 import { PrivateAccessGate } from "@/components/private-access-gate"
 import { SaveCelebration } from "@/components/save-celebration"
 import { catalog } from "@/data/catalog"
@@ -78,8 +79,12 @@ function DetailRoute({
 
 function AppRoutes() {
   const shared = useSharedProgress()
+  // Push notifications are a household-only concern: they wake the *other*
+  // member, which does not exist in the browser-local demo. Passing a null
+  // key here means `usePushNotifications` treats the environment as
+  // unsupported, so no permission prompt fires for an anonymous visitor.
   const notifications = usePushNotifications(
-    shared.pushPublicKey,
+    shared.isDemo ? null : shared.pushPublicKey,
     shared.member.id,
     shared.pushBindingId,
   )
@@ -87,6 +92,7 @@ function AppRoutes() {
   return (
     <PrivateAccessGate loading={shared.loading} error={shared.error}>
       <AppShell>
+        {shared.isDemo ? <DemoBanner /> : null}
         <SaveCelebration
           token={shared.saveConfirmation.token}
           message={shared.saveConfirmation.message}

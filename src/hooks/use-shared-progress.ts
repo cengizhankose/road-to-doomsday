@@ -7,7 +7,13 @@ import type {
   SharedProgressState,
 } from "@/domain/progress"
 import {
+  readDemoState,
+  saveDemoProgress,
+  saveDemoSelection,
+} from "@/lib/demo-state"
+import {
   conflictRecord,
+  HttpError,
   progressClient,
   type Selection,
 } from "@/lib/progress-client"
@@ -22,7 +28,17 @@ const devMembers: HouseholdMember[] = [
   { id: "local-member-2", name: "Member 2", slot: 2 },
 ]
 
-const emptyState: SharedProgressState = {
+/**
+ * The state React Query holds carries one extra bit compared to the domain
+ * shape: whether we ended up serving the browser-local demo or the real API.
+ * Threading it through the cache — rather than a hook-local ref — lets every
+ * mutation ask the source of truth on the way to picking an endpoint, so a
+ * demo edit can never leak into a `PATCH /api/progress` even if two renders
+ * race the mode switch.
+ */
+type HookSharedState = SharedProgressState & { isDemo: boolean }
+
+const emptyState: HookSharedState = {
   progress: {},
   selections: { movies: null, series: null },
   images: {},
@@ -30,6 +46,7 @@ const emptyState: SharedProgressState = {
   members: devMembers,
   pushPublicKey: null,
   pushBindingId: "local",
+  isDemo: false,
 }
 
 function readLocalState(): SharedProgressState {
@@ -117,8 +134,14 @@ export function useSharedProgress() {
     SaveConfirmation & { token: number }
   >({ token: 0, message: "Progress saved", confetti: true })
 
+  // Read whichever mode the current cache says we are in. Every mutation asks
+  // this before picking an endpoint, so a stray demo save can never reach the
+  // real API even if a render path forgets to hide a control.
+  const isDemoNow = () =>
+    queryClient.getQueryData<HookSharedState>(queryKey)?.isDemo ?? false
+
   const cacheRecord = (saved: ProgressRecord) => {
-    queryClient.setQueryData<SharedProgressState>(
+    queryClient.setQueryData<HookSharedState>(
       queryKey,
       (current = emptyState) => ({
         ...current,
@@ -143,37 +166,64 @@ export function useSharedProgress() {
       setSaveConfirmation((current) => ({ ...confirm, token: current.token + 1 }))
     }
   }
-  const query = useQuery({
+  const query = useQuery<HookSharedState>({
     queryKey,
-    queryFn: () =>
-      import.meta.env.DEV
-        ? Promise.resolve(readLocalState())
-        : progressClient.getAll(),
+    queryFn: async () => {
+      if (import.meta.env.DEV) {
+        return { ...readLocalState(), isDemo: false }
+      }
+      try {
+        return { ...(await progressClient.getAll()), isDemo: false }
+      } catch (error) {
+        // A 401 on the initial GET is what an anonymous visitor to the public
+        // URL sees. Instead of a locked door, fall through to the browser-
+        // local demo — the server still refuses every mutation without a
+        // session, so nothing about this changes the auth boundary.
+        if (error instanceof HttpError && error.status === 401) {
+          return { ...readDemoState(), isDemo: true }
+        }
+        throw error
+      }
+    },
   })
   const progressMutation = useMutation({
-    mutationFn: ({ record }: SaveIntent) =>
-      import.meta.env.DEV
-        ? Promise.resolve(saveLocalProgress(record))
-        : progressClient.save(record),
+    mutationFn: ({ record }: SaveIntent) => {
+      if (import.meta.env.DEV || isDemoNow()) {
+        return Promise.resolve(
+          isDemoNow() ? saveDemoProgress(record) : saveLocalProgress(record),
+        )
+      }
+      return progressClient.save(record)
+    },
     onSuccess: commit,
     onError: cacheConflict,
   })
   const scheduleMutation = useMutation({
-    // Same write, but through the endpoint that also wakes the other member.
-    mutationFn: ({ record }: SaveIntent) =>
-      import.meta.env.DEV
-        ? Promise.resolve(saveLocalProgress(record))
-        : progressClient.schedule(record),
+    // Same write, but through the endpoint that also wakes the other member —
+    // except in demo mode, where "waking the other member" makes no sense and
+    // the save stays entirely inside the browser.
+    mutationFn: ({ record }: SaveIntent) => {
+      if (import.meta.env.DEV || isDemoNow()) {
+        return Promise.resolve(
+          isDemoNow() ? saveDemoProgress(record) : saveLocalProgress(record),
+        )
+      }
+      return progressClient.schedule(record)
+    },
     onSuccess: commit,
     onError: cacheConflict,
   })
   const selectionMutation = useMutation({
-    mutationFn: (selection: Selection) =>
-      import.meta.env.DEV
-        ? Promise.resolve(saveLocalSelection(selection))
-        : progressClient.saveSelection(selection),
+    mutationFn: (selection: Selection) => {
+      if (import.meta.env.DEV || isDemoNow()) {
+        return Promise.resolve(
+          isDemoNow() ? saveDemoSelection(selection) : saveLocalSelection(selection),
+        )
+      }
+      return progressClient.saveSelection(selection)
+    },
     onSuccess: (saved) => {
-      queryClient.setQueryData<SharedProgressState>(
+      queryClient.setQueryData<HookSharedState>(
         queryKey,
         (current = emptyState) => ({
           ...current,
@@ -192,6 +242,12 @@ export function useSharedProgress() {
     members: state.members,
     pushPublicKey: state.pushPublicKey,
     pushBindingId: state.pushBindingId,
+    /**
+     * True whenever the app is running against the browser-local demo store.
+     * Consumers use this to render the demo banner and to suppress features
+     * that only make sense with a real household (push notifications).
+     */
+    isDemo: state.isDemo,
     loading: query.isLoading,
     refreshing: query.isFetching,
     refresh: query.refetch,

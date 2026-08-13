@@ -4,9 +4,11 @@ A mobile-first PWA where two people track their way through the 63-title MCU
 catalog toward *Avengers: Doomsday* — movies and series as two independent
 routes, one shared plan, no accounts.
 
-**Live app:** <https://road-to-doomsday-ten.vercel.app> (the tracker itself is
-private per household — the link lands on the invite-required screen unless you
-open it with a household member's single-use link).
+**Live app:** <https://road-to-doomsday-ten.vercel.app> — anyone can open it
+and try the UI in a browser-local **demo**: every change stays in the visitor's
+own browser and never touches shared production data. Opening the link with a
+household member's single-use invite instead loads that household's real,
+private tracker.
 
 <p align="center">
   <img src="docs/screenshots/home.png" alt="Home screen with a progress ring per route and the next pick for each" width="30%">
