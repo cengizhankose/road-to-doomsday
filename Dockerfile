@@ -10,12 +10,12 @@ RUN npm run build
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package.json ./
-RUN npm install --omit=dev --no-audit --no-fund && npm i -g tsx
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev --no-audit --no-fund --legacy-peer-deps
 COPY --from=build /app/dist ./dist
 COPY api ./api
 COPY src ./src
 COPY tsconfig.json tsconfig.api.json ./
 COPY server.ts ./
 EXPOSE 3000
-CMD ["tsx", "server.ts"]
+CMD ["npx", "tsx", "server.ts"]
